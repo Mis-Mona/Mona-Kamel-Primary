@@ -20,13 +20,13 @@
     --overlay-bg: rgba(0,0,0,0.6);
     --modal-bg: white;
     --transition: all 0.3s ease;
-    --accent: #6c5ce7;
     --accent-light: #8b7cf0;
     --accent-dark: #4a3bb5;
     --dark-bg: #111417;
     --toast-success: #00b894;
     --toast-error: #ff7675;
     --toast-warning: #f1c40f;
+    --text-muted: #b2bec3;
 }
 
 * {
@@ -66,6 +66,7 @@ body.dark-mode {
     --toast-error: #ff7675;
     --toast-warning: #f1c40f;
     --overlay-bg: rgba(0, 0, 0, 0.8);
+    --text-muted: #636e72;
 }
 
 body.dark-mode header {
@@ -401,7 +402,6 @@ button,
 
 /* ================ HEADER ================ */
 header {
-    background: var(--card-bg);
     padding: 15px 5%;
     display: flex;
     justify-content: space-between;
@@ -726,53 +726,7 @@ header {
     box-shadow: 0 3px 10px rgba(0,184,148,0.3);
 }
 
-/* ================ CONTINUE WATCHING ================ */
-.continue-card {
-    background: var(--card-bg);
-    border-radius: 20px;
-    padding: 20px;
-    border-right: 6px solid var(--main);
-    margin-bottom: 15px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    box-shadow: var(--card-shadow);
-    border: 1px solid var(--border-color);
-    border-right-width: 6px;
-    transition: var(--transition);
-}
-
-.continue-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 15px 30px rgba(108,92,231,0.15);
-    border-color: var(--main);
-}
-
-.continue-card h4 {
-    color: var(--dark);
-    margin-bottom: 5px;
-    font-weight: 700;
-}
-
-.continue-card .btn-continue {
-    background: linear-gradient(135deg, var(--main), var(--dark));
-    color: white;
-    padding: 8px 20px;
-    border-radius: 50px;
-    text-decoration: none;
-    font-weight: bold;
-    font-size: 0.9rem;
-    border: none;
-    cursor: pointer;
-    transition: var(--transition);
-    box-shadow: 0 3px 10px rgba(108,92,231,0.3);
-}
-
-.btn-continue:hover {
-    opacity: 0.9;
-    transform: scale(1.05);
-    box-shadow: 0 5px 15px rgba(108,92,231,0.4);
-}
+/* ================ CONTINUE WATCHING (card style merged below) ================ */
 
 .empty-state {
     text-align: center;
@@ -1444,12 +1398,12 @@ header {
 .step-container {
     display: none;
     text-align: right;
-    animation: fadeIn 0.4s;
+    animation: fadeInStep 0.4s;
 }
 
 .step-container.active { display: block; }
 
-@keyframes fadeIn {
+@keyframes fadeInStep {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
@@ -2268,19 +2222,7 @@ footer {
 .mb-2 { margin-bottom: 20px; }
 .mb-3 { margin-bottom: 30px; }
 
-/* ================ SECTION ORDER ================ */
-.courses {
-    order: 1;
-}
-.perfect-section {
-    order: 2;
-}
-.leaderboard-section {
-    order: 3;
-}
-.reviews {
-    order: 4;
-}
+/* ================ SECTION ORDER (informational only) ================ */
 
 /* ================ CONTINUE WATCHING ================ */
 .continue-watching-section {
@@ -2877,14 +2819,13 @@ body.dark-mode .install-pwa-btn {
     height: 40px;
     background: var(--main);
     color: white;
-    border: none;
+    border: 3px solid var(--card-bg);
     border-radius: 50%;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: var(--transition);
-    border: 3px solid var(--card-bg);
 }
 
 .edit-avatar-btn:hover {
@@ -3595,7 +3536,7 @@ body.dark-mode .whatsapp-group-card {
 @media (max-width: 320px) {
     .hero h1 { font-size: 1.3rem !important; }
     .auth-btn { padding: 6px 12px !important; font-size: 0.8rem !important; }
-    body { font-size: 13px !important; }
+    body { font-size: 13px; }
 }
 
 @media (max-width: 768px) {

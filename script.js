@@ -1,6 +1,6 @@
 // ================ FIREBASE IMPORTS ================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, get, child, push, onValue, set, update, off, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, get, child, push, onValue, set, update, off, remove, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getAuth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 // ================ FIREBASE CONFIG ================
@@ -328,7 +328,6 @@ async function isEmailExists(email) {
         });
         return exists;
     } catch (error) {
-        console.warn('isEmailExists: permission denied, skipping check');
         return false;
     }
 }
@@ -351,7 +350,6 @@ async function isUsernameExists(username) {
             const snap = await get(ref(db, `usernames/${username.toLowerCase()}`));
             return snap.exists();
         } catch (e) {
-            console.warn('isUsernameExists: permission denied, skipping check');
             return false;
         }
     }
@@ -363,13 +361,18 @@ async function generateUniqueStudentId() {
     for (let i = 0; i < MAX_ATTEMPTS; i++) {
         const newId = Math.floor(1000000000 + Math.random() * 9000000000).toString();
         try {
-            const snap = await get(ref(db, `studentIds/${newId}`));
-            if (!snap.exists()) {
-                await set(ref(db, `studentIds/${newId}`), true);
-                return newId;
-            }
+            const idRef = ref(db, `studentIds/${newId}`);
+            let reserved = false;
+            await runTransaction(idRef, (currentValue) => {
+                if (currentValue === null) {
+                    reserved = true;
+                    return true; // احجز الكود
+                }
+                return; // الكود محجوز بالفعل - ألغِ
+            });
+            if (reserved) return newId;
         } catch (e) {
-            return newId;
+            // جرّب رقم آخر
         }
     }
     return Date.now().toString().slice(-10);
@@ -452,7 +455,6 @@ window.handleRegisterEmail = async function() {
         window.showToast(`✅ تم التسجيل بنجاح! كود الطالب: ${sid}`, 'success', 5000);
         window.closeLogin();
     } catch(err) {
-        console.error('Registration error:', err);
         handleFirebaseError(err, 'حدث خطأ في التسجيل');
     } finally {
         btn.disabled = false;
@@ -463,8 +465,6 @@ window.handleRegisterEmail = async function() {
 };
 
 window.handleRegisterUsername = async function() {
-    console.log('🔵 تم استدعاء handleRegisterUsername');
-    
     if (!window.checkStep1Completion() || !window.checkStep2Completion()) {
         window.showToast('❌ يرجى إكمال جميع البيانات المطلوبة أولاً', 'error');
         return;
@@ -483,8 +483,6 @@ window.handleRegisterUsername = async function() {
     const username = document.getElementById('regUsername')?.value.trim().toLowerCase() || '';
     const pass = document.getElementById('regPassUser')?.value || '';
     const passConfirm = document.getElementById('regPassUserConfirm')?.value || '';
-    
-    console.log('📝 البيانات المدخلة:', { username, fullName, grade });
     
     if (!username || !pass) {
         window.showToast('❌ يرجى إدخال اسم المستخدم وكلمة المرور', 'error');
@@ -514,7 +512,6 @@ window.handleRegisterUsername = async function() {
     
     const btn = document.getElementById('regBtnUser');
     if (!btn) {
-        console.error('❌ زر التسجيل غير موجود');
         return;
     }
     
@@ -524,7 +521,6 @@ window.handleRegisterUsername = async function() {
     window.startProgress();
     
     try {
-        console.log('🔍 التحقق من وجود اسم المستخدم...');
         const usernameExists = await isUsernameExists(username);
         if (usernameExists) {
             window.showToast('❌ اسم المستخدم هذا مستخدم بالفعل. الرجاء اختيار اسم آخر.', 'error');
@@ -535,9 +531,7 @@ window.handleRegisterUsername = async function() {
             return;
         }
         
-        console.log('✅ اسم المستخدم متاح');
         const sid = await generateUniqueStudentId();
-        console.log('✅ تم توليد كود الطالب:', sid);
         
         const email = `${username}@monastudent.local`;
         
@@ -551,11 +545,9 @@ window.handleRegisterUsername = async function() {
             return;
         }
         
-        console.log('🔐 إنشاء حساب Firebase...');
         const res = await createUserWithEmailAndPassword(auth, email, pass);
         await updateProfile(res.user, { displayName: fullName });
         
-        console.log('💾 حفظ البيانات في قاعدة البيانات...');
         await set(ref(db, 'students/' + res.user.uid), { 
             name: fullName, 
             grade: grade, 
@@ -573,11 +565,9 @@ window.handleRegisterUsername = async function() {
         
         await set(ref(db, `usernames/${username.toLowerCase()}`), res.user.uid);
         
-        console.log('✅ تم التسجيل بنجاح!');
         window.showToast(`✅ تم التسجيل بنجاح! كود الطالب: ${sid}`, 'success', 5000);
         window.closeLogin();
     } catch(err) {
-        console.error('❌ خطأ في التسجيل باليوزرنيم:', err);
         handleFirebaseError(err, 'حدث خطأ في التسجيل');
     } finally {
         btn.disabled = false;
@@ -644,7 +634,6 @@ window.registerWithGoogle = async function() {
         window.showToast(`✅ تم التسجيل بنجاح! كود الطالب: ${sid}`, 'success', 5000);
         window.closeLogin();
     } catch(err) {
-        console.error('Google registration error:', err);
         if (auth.currentUser) {
             await signOut(auth);
         }
@@ -690,7 +679,6 @@ window.loginEmailSubmit = async function(e) {
         window.closeLogin();
         window.showToast('✅ مرحباً بك مجدداً!', 'success');
     } catch(err) {
-        console.error('❌ Login error:', err);
         handleFirebaseError(err, 'فشل تسجيل الدخول');
     } finally {
         if (btn) {
@@ -728,7 +716,6 @@ window.loginUsernameSubmit = async function(e) {
     window.startProgress();
     
     try {
-        const usernameSnap = await get(ref(db, `usernames/${username}`));
         
         if (!usernameSnap.exists()) {
             window.showToast('❌ اسم المستخدم غير موجود', 'error');
@@ -767,7 +754,6 @@ window.loginUsernameSubmit = async function(e) {
         window.closeLogin();
         window.showToast('✅ مرحباً بك مجدداً!', 'success');
     } catch(err) {
-        console.error('❌ Username login error:', err);
         handleFirebaseError(err, 'حدث خطأ في تسجيل الدخول');
     } finally {
         if (btn) {
@@ -799,7 +785,6 @@ window.loginGoogle = async function() {
             window.showToast('✅ مرحباً بك مجدداً!', 'success');
         }
     } catch(err) {
-        console.error('Google login error:', err);
         handleFirebaseError(err, 'حدث خطأ في تسجيل الدخول');
     } finally {
         if (btn) {
@@ -894,14 +879,12 @@ onAuthStateChanged(auth, async user => {
                         await set(streakRef, { current: 1, lastLogin: today });
                     }
                 } catch (e) {
-                    console.error('Error saving streak:', e);
                 }
                 
                 await window.checkLoginBadges(user.uid);
             }
             
         } catch (error) {
-            console.error("خطأ في جلب بيانات المستخدم:", error);
             window.showToast("حدث خطأ أثناء تحميل بياناتك.", 'error');
         } finally {
             window.stopProgress();
@@ -1035,7 +1018,6 @@ window.loadPerfectScores = async function() {
         }
         
     } catch (error) {
-        console.error("Error loading perfect scores:", error);
         const perfectScoresGrid = document.getElementById('perfectScoresGrid');
         if (perfectScoresGrid) {
             perfectScoresGrid.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><br>حدث خطأ في تحميل الدرجات النهائية</div>';
@@ -1048,13 +1030,20 @@ window.loadFolders = function() {
     listenerManager.removeByContext('folders');
     
     const foldersRef = ref(db, 'folders');
-    const listener = onValue(foldersRef, async (snapshot) => {
+    const errorCallback = (error) => {
+        const grid = document.getElementById('foldersGrid');
+        if (grid) {
+            document.querySelectorAll('.skeleton').forEach(el => el.remove());
+            grid.innerHTML = "<p style='text-align:center; grid-column:1/-1;'>❌ حدث خطأ في تحميل الكورسات. حاول مرة أخرى.</p>";
+        }
+    };
+    
+    const unsubscribe = onValue(foldersRef, async (snapshot) => {
         const grid = document.getElementById('foldersGrid');
         if (!grid) return;
         
         document.querySelectorAll('.skeleton').forEach(el => el.remove());
-        grid.innerHTML = "";
-        
+        grid.innerHTML = "";        
         if (!snapshot.exists()) {
             grid.innerHTML = "<p style='text-align:center; grid-column:1/-1;'>لا توجد كورسات بعد</p>";
             return;
@@ -1113,7 +1102,7 @@ window.loadFolders = function() {
         }
     });
     
-    listenerManager.add('folders', foldersRef, listener, 'folders');
+    listenerManager.add('folders', foldersRef, unsubscribe, 'folders');
 };
 
 // ================ REVIEWS LOADING ================
@@ -1171,7 +1160,6 @@ window.openContent = async function(folderId, folderName) {
         
         await window.loadCourseContent(folderId, folderName, true);
     } catch (error) {
-        console.error('Open content error:', error);
         window.showToast('❌ حدث خطأ في فتح المحتوى', 'error');
     } finally {
         window.stopProgress();
@@ -1252,7 +1240,6 @@ window.confirmSubscription = async function() {
         window.closeSubscriptionModal();
         await window.loadCourseContent(currentFolderId, currentFolderName, true);
     } catch (error) {
-        console.error('Subscription error:', error);
         subError.innerHTML = '❌ حدث خطأ في الاشتراك';
     } finally {
         window.stopProgress();
@@ -1477,7 +1464,7 @@ window.loadCourseContent = async function(folderId, folderName, hasAccess) {
 };
 
 // ================ OPEN VIDEO ================
-window.openVideo = async function(url, title, videoId, folderId) {
+window.openVideo = async function(url, title, videoId, folderId, startSeconds) {
     if (!currentUser) {
         window.openLogin();
         return;
@@ -1489,6 +1476,7 @@ window.openVideo = async function(url, title, videoId, folderId) {
         return;
     }
     const videoIdentifier = match[2];
+    const startParam = startSeconds && startSeconds > 0 ? `&start=${startSeconds}` : '';
 
     window.startProgress();
 
@@ -1525,7 +1513,7 @@ window.openVideo = async function(url, title, videoId, folderId) {
                     <iframe 
                         id="youtubePlayer"
                         style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius:15px;"
-                        src="https://www.youtube.com/embed/${videoIdentifier}?autoplay=1&enablejsapi=1"
+                        src="https://www.youtube.com/embed/${videoIdentifier}?autoplay=1&enablejsapi=1${startParam}"
                         frameborder="0"
                         allow="autoplay; encrypted-media"
                         allowfullscreen>
@@ -1561,7 +1549,6 @@ window.openVideo = async function(url, title, videoId, folderId) {
             window.addEventListener('message', window._videoMessageHandler);
         }
     } catch (error) {
-        console.error('Error opening video:', error);
         window.showToast('❌ حدث خطأ في تشغيل الفيديو', 'error');
     } finally {
         window.stopProgress();
@@ -1644,25 +1631,21 @@ window.startQuiz = async function(folderId, quizId) {
         quizContainer.innerHTML = html;
         
         if (timeLimitMinutes && timeLimitMinutes > 0) {
-            const timerKey = `quizStartTime_${currentUser.uid}_${quizId}`;
             const totalSeconds = timeLimitMinutes * 60;
             
-            let startTime = parseInt(localStorage.getItem(timerKey) || '0');
-            if (!startTime) {
-                startTime = Date.now();
-                localStorage.setItem(timerKey, startTime);
+            // نستخدم الذاكرة بدل localStorage لمنع الغش
+            if (!window._quizStartTime) {
+                window._quizStartTime = Date.now();
             }
             
-            let secondsLeft = totalSeconds - Math.floor((Date.now() - startTime) / 1000);
+            let secondsLeft = totalSeconds - Math.floor((Date.now() - window._quizStartTime) / 1000);
             
             if (secondsLeft <= 0) {
-                localStorage.removeItem(timerKey);
+                window._quizStartTime = null;
                 window.showToast('⏰ انتهى وقت الامتحان! سيتم تسليم إجاباتك تلقائياً', 'warning', 3000);
                 setTimeout(() => window.submitQuiz(folderId, quizId), 1500);
                 return;
             }
-            
-            window._quizTimerKey = timerKey;
             
             function updateTimerDisplay() {
                 const mins = Math.floor(secondsLeft / 60);
@@ -1685,13 +1668,12 @@ window.startQuiz = async function(folderId, quizId) {
             updateTimerDisplay();
             
             window._quizTimer = setInterval(() => {
-                secondsLeft = totalSeconds - Math.floor((Date.now() - startTime) / 1000);
+                secondsLeft = totalSeconds - Math.floor((Date.now() - window._quizStartTime) / 1000);
                 updateTimerDisplay();
                 if (secondsLeft <= 0) {
                     clearInterval(window._quizTimer);
                     window._quizTimer = null;
-                    localStorage.removeItem(timerKey);
-                    window._quizTimerKey = null;
+                    window._quizStartTime = null;
                     window.showToast('⏰ انتهى الوقت! سيتم تسليم إجاباتك تلقائياً', 'warning', 3000);
                     setTimeout(() => window.submitQuiz(folderId, quizId), 1500);
                 }
@@ -1699,7 +1681,6 @@ window.startQuiz = async function(folderId, quizId) {
         }
         
     } catch (error) {
-        console.error('Start quiz error:', error);
         window.showToast('❌ حدث خطأ في بدء الامتحان', 'error');
     } finally {
         window.stopProgress();
@@ -1725,8 +1706,24 @@ window.submitQuiz = async function(folderId, quizId) {
     
     const quizData = quizSnap.val();
     const questions = quizData.questions || {};
-    let score = 0, total = Object.keys(questions).length;
+    const total = Object.keys(questions).length;
+    
+    // التحقق من الأسئلة غير المجابة
+    let unanswered = 0;
+    Object.keys(questions).forEach((qKey, idx) => {
+        const selected = document.querySelector(`input[name="q${idx}"]:checked`);
+        if (!selected) unanswered++;
+    });
+    
+    if (unanswered > 0) {
+        const confirmed = confirm(`⚠️ لم تجب على ${unanswered} سؤال بعد. هل تريد التسليم الآن؟`);
+        if (!confirmed) return;
+    } else {
+        const confirmed = confirm('هل أنت متأكد من تسليم الإجابات؟');
+        if (!confirmed) return;
+    }
     const userAnswers = {};
+    let score = 0;
 
     window.startProgress();
 
@@ -1799,13 +1796,8 @@ window.submitQuiz = async function(folderId, quizId) {
         }
 
         await window.loadPerfectScores();
-        if (window._quizTimerKey) {
-            localStorage.removeItem(window._quizTimerKey);
-            window._quizTimerKey = null;
-        }
         window.closeQuiz();
     } catch (error) {
-        console.error('Submit quiz error:', error);
         window.showToast('❌ حدث خطأ في تسليم الامتحان', 'error');
     } finally {
         window.stopProgress();
@@ -1899,7 +1891,6 @@ window.viewQuizResult = async function(folderId, quizId) {
         html += `<button type="button" onclick="window.closeQuiz()" style="background:var(--dark); color:white; border:none; padding:15px; border-radius:15px; cursor:pointer; font-weight:bold; width:100%; font-size:1.1rem; font-family:'Cairo';">إغلاق</button>`;
         quizContainer.innerHTML = html;
     } catch (error) {
-        console.error('View quiz result error:', error);
         window.showToast('❌ حدث خطأ في عرض النتيجة', 'error');
     } finally {
         window.stopProgress();
@@ -1914,6 +1905,7 @@ window.closeQuiz = function() {
         clearInterval(window._quizTimer);
         window._quizTimer = null;
     }
+    window._quizStartTime = null;
     
     if (window._videoProgressInterval) {
         clearInterval(window._videoProgressInterval);
@@ -1959,18 +1951,40 @@ window.loadCourseRatingUI = async function(courseId) {
     }
     
     if (!userReviewed) {
-        html += `<div class="star-rating">
-            <input type="radio" id="star5" name="rating" value="5"><label for="star5" onclick="window.setRating(5)">★</label>
-            <input type="radio" id="star4" name="rating" value="4"><label for="star4" onclick="window.setRating(4)">★</label>
-            <input type="radio" id="star3" name="rating" value="3"><label for="star3" onclick="window.setRating(3)">★</label>
-            <input type="radio" id="star2" name="rating" value="2"><label for="star2" onclick="window.setRating(2)">★</label>
-            <input type="radio" id="star1" name="rating" value="1"><label for="star1" onclick="window.setRating(1)">★</label>
-        </div>
-        <textarea id="reviewText" rows="3" placeholder="اكتب رأيك هنا..." style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; margin:10px 0;"></textarea>
-        <button type="button" onclick="window.submitCourseRating('${courseId}')" class="btn" style="background:var(--main); color:white;">إرسال التقييم</button>`;
+        const starDiv = document.createElement('div');
+        starDiv.className = 'star-rating';
+        starDiv.innerHTML = `
+            <input type="radio" id="star5" name="rating" value="5"><label for="star5">★</label>
+            <input type="radio" id="star4" name="rating" value="4"><label for="star4">★</label>
+            <input type="radio" id="star3" name="rating" value="3"><label for="star3">★</label>
+            <input type="radio" id="star2" name="rating" value="2"><label for="star2">★</label>
+            <input type="radio" id="star1" name="rating" value="1"><label for="star1">★</label>
+        `;
+        starDiv.querySelectorAll('label').forEach(label => {
+            label.addEventListener('click', () => window.setRating(parseInt(label.getAttribute('for').replace('star', ''))));
+        });
+        
+        const textarea = document.createElement('textarea');
+        textarea.id = 'reviewText';
+        textarea.rows = 3;
+        textarea.placeholder = 'اكتب رأيك هنا...';
+        textarea.style.cssText = 'width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; margin:10px 0;';
+        textarea.maxLength = 500;
+        
+        const submitBtn = document.createElement('button');
+        submitBtn.type = 'button';
+        submitBtn.className = 'btn';
+        submitBtn.style.cssText = 'background:var(--main); color:white;';
+        submitBtn.textContent = 'إرسال التقييم';
+        submitBtn.addEventListener('click', () => window.submitCourseRating(courseId));
+        
+        ratingDiv.innerHTML = html;
+        ratingDiv.appendChild(starDiv);
+        ratingDiv.appendChild(textarea);
+        ratingDiv.appendChild(submitBtn);
+    } else {
+        ratingDiv.innerHTML = html;
     }
-    
-    ratingDiv.innerHTML = html;
     ratingDiv.style.display = 'block';
 };
 
@@ -1984,6 +1998,13 @@ window.submitCourseRating = async function(courseId) {
         return;
     }
     
+    // التحقق من أن الطالب مشترك في الكورس قبل السماح بالتقييم
+    const studentData = await getCachedStudentData(currentUser.uid);
+    if (!studentData || !studentData.subscriptions || !studentData.subscriptions[courseId]) {
+        window.showToast('❌ يجب الاشتراك في الكورس أولاً لتتمكن من تقييمه', 'error');
+        return;
+    }
+    
     const rating = selectedRating;
     if (!rating) {
         window.showToast('❌ يرجى اختيار تقييم', 'error');
@@ -1991,7 +2012,7 @@ window.submitCourseRating = async function(courseId) {
     }
     
     const reviewTextEl = document.getElementById('reviewText');
-    const review = reviewTextEl ? reviewTextEl.value : '';
+    const review = reviewTextEl ? reviewTextEl.value.trim().substring(0, 500) : '';
     
     window.startProgress();
     
@@ -2007,23 +2028,27 @@ window.submitCourseRating = async function(courseId) {
             timestamp: new Date().toLocaleString('ar-EG')
         });
         
-        const reviewsSnap = await get(child(dbRef, `course_reviews/${courseId}`));
-        let total = 0, count = 0;
-        reviewsSnap.forEach(r => { 
-            total += r.val().rating; 
-            count++; 
+        // حساب المتوسط بـ transaction لمنع race conditions
+        await runTransaction(ref(db, `folders/${courseId}/ratingSum`), (currentSum) => {
+            return (currentSum || 0) + rating;
         });
-        const avg = count > 0 ? (total / count).toFixed(1) : 0;
+        await runTransaction(ref(db, `folders/${courseId}/ratingCount`), (currentCount) => {
+            return (currentCount || 0) + 1;
+        });
         
-        await update(ref(db, `folders/${courseId}`), { 
-            avgRating: avg, 
-            reviewCount: count 
-        });
+        // نحسب المتوسط من القيم المحدّثة
+        const folderSnap = await get(child(dbRef, `folders/${courseId}`));
+        if (folderSnap.exists()) {
+            const fData = folderSnap.val();
+            const rSum = fData.ratingSum || rating;
+            const rCount = fData.ratingCount || 1;
+            const avg = (rSum / rCount).toFixed(1);
+            await update(ref(db, `folders/${courseId}`), { avgRating: avg });
+        }
         
         window.showToast('✅ تم إرسال تقييمك، شكراً لك!', 'success');
         window.loadCourseRatingUI(courseId);
     } catch (error) {
-        console.error('Submit rating error:', error);
         window.showToast('❌ حدث خطأ في إرسال التقييم', 'error');
     } finally {
         window.stopProgress();
@@ -2034,7 +2059,11 @@ window.sendStuReview = async function() {
     const stuText = document.getElementById('stuText');
     if (!stuText) return;
     
-    const text = stuText.value.trim();
+    const text = stuText.value.trim().substring(0, 1000);
+    if(text.length < 3) {
+        window.showToast('❌ يرجى كتابة رأي أطول من 3 حروف', 'error');
+        return;
+    }
     if(text && currentUser) {
         window.startProgress();
         try {
@@ -2051,7 +2080,6 @@ window.sendStuReview = async function() {
             }
             
         } catch (error) {
-            console.error('Send review error:', error);
             window.showToast('❌ حدث خطأ في إرسال التقييم', 'error');
         } finally {
             window.stopProgress();
@@ -2068,7 +2096,9 @@ window.updateGrades = function() {
     gradeSelect.innerHTML = "";
     
     const grades = { 
-        primary: ["الرابع الابتدائي", "الخامس الابتدائي", "السادس الابتدائي"]
+        primary: ["الرابع الابتدائي", "الخامس الابتدائي", "السادس الابتدائي"],
+        middle: ["الأول الإعدادي", "الثاني الإعدادي", "الثالث الإعدادي"],
+        secondary: ["الأول الثانوي", "الثاني الثانوي", "الثالث الثانوي"]
     };
     
     if (level && grades[level]) {
@@ -2087,8 +2117,15 @@ window.updateGrades = function() {
 };
 
 // ================ UTILITY FUNCTIONS ================
-window.logout = function() { 
-    signOut(auth);
+window.logout = async function() { 
+    listenerManager.removeAll();
+    studentDataCache = {};
+    cacheTime = {};
+    currentUser = null;
+    isAdminUser = false;
+    myShortId = "";
+    currentStudentGrade = null;
+    await signOut(auth);
     window.showToast('👋 تم تسجيل الخروج', 'success');
 };
 
@@ -2110,7 +2147,12 @@ window.goHome = function() {
     if (homePage) homePage.style.display = "block";
     if (contentArea) contentArea.style.display = "none";
     
-    window.loadFolders();
+    // نعيد تحميل الفولدرز فقط إذا لم تكن محملة بعد
+    const coursesGrid = document.getElementById('coursesGrid');
+    const hasCourses = coursesGrid && coursesGrid.children.length > 0 && !coursesGrid.querySelector('.skeleton');
+    if (!hasCourses) {
+        window.loadFolders();
+    }
     window.loadPerfectScores();
 };
 
@@ -2182,31 +2224,10 @@ window.cleanupListeners = function(context = null) {
     return listenerManager.removeAll();
 };
 
-// ================ DEBUG LOGIN BUTTONS ================
-window.debugLoginButtons = function() {
-    console.log('=== Debugging Login Buttons ===');
-    
-    const loginUsernameSubmitBtn = document.getElementById('loginUsernameSubmitBtn');
-    const loginEmailSubmitBtn = document.getElementById('loginEmailSubmitBtn');
-    
-    console.log('loginUsernameSubmitBtn exists:', !!loginUsernameSubmitBtn);
-    console.log('loginEmailSubmitBtn exists:', !!loginEmailSubmitBtn);
-    
-    if (loginUsernameSubmitBtn) {
-        loginUsernameSubmitBtn.removeEventListener('click', window.loginUsernameSubmit);
-        loginUsernameSubmitBtn.addEventListener('click', window.loginUsernameSubmit);
-        console.log('✅ Re-attached click event to loginUsernameSubmitBtn');
-    }
-    
-    if (loginEmailSubmitBtn) {
-        loginEmailSubmitBtn.removeEventListener('click', window.loginEmailSubmit);
-        loginEmailSubmitBtn.addEventListener('click', window.loginEmailSubmit);
-        console.log('✅ Re-attached click event to loginEmailSubmitBtn');
-    }
-};
-
 // ================ EVENT LISTENERS FOR SUBSCRIPTION ================
+// ================ ربط أحداث التسجيل ================
 document.addEventListener('DOMContentLoaded', function() {
+    // ======= أحداث الاشتراك =======
     const previewBtn = document.getElementById('previewBtn');
     if (previewBtn) {
         previewBtn.addEventListener('click', async () => {
@@ -2214,7 +2235,6 @@ document.addEventListener('DOMContentLoaded', function() {
             await window.loadCourseContent(currentFolderId, currentFolderName, false);
         });
     }
-
     const subscribeBtn = document.getElementById('subscribeBtn');
     if (subscribeBtn) {
         subscribeBtn.addEventListener('click', () => {
@@ -2222,15 +2242,12 @@ document.addEventListener('DOMContentLoaded', function() {
             if (subIdSection) subIdSection.style.display = 'block';
         });
     }
-    
     const confirmSubscribeBtn = document.getElementById('confirmSubscribeBtn');
     if (confirmSubscribeBtn) {
         confirmSubscribeBtn.addEventListener('click', window.confirmSubscription);
     }
-});
-
-// ================ ربط أحداث التسجيل ================
-document.addEventListener('DOMContentLoaded', function() {
+    
+    // ======= أحداث التسجيل والدخول =======
     const showLoginChoiceBtn = document.getElementById('showLoginChoiceBtn');
     const showRegisterBtn = document.getElementById('showRegisterBtn');
     const showLoginEmailBtn = document.getElementById('showLoginEmailBtn');
@@ -2280,7 +2297,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (regBtnUser) {
         regBtnUser.removeEventListener('click', window.handleRegisterUsername);
         regBtnUser.addEventListener('click', window.handleRegisterUsername);
-        console.log('✅ تم ربط زر التسجيل باليوزرنيم بنجاح');
     }
     
     if (backToChoiceFromLogin) backToChoiceFromLogin.addEventListener('click', () => window.showAuthForm('choice'));
@@ -2326,11 +2342,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    setTimeout(window.debugLoginButtons, 1000);
-});
-
-// ================ INIT ================
-document.addEventListener('DOMContentLoaded', () => {
+    // ======= التهيئة العامة =======
     window.loadFolders();
     window.loadReviews();
     window.loadPerfectScores();
@@ -2339,6 +2351,8 @@ document.addEventListener('DOMContentLoaded', () => {
     onValue(quizResultsRef, () => {
         window.loadPerfectScores();
     });
+    
+    initDarkMode();
 });
 
 window.addEventListener('beforeunload', () => {
@@ -2349,41 +2363,36 @@ window.addEventListener('popstate', () => {
     listenerManager.removeByContext('content');
 });
 
-// ================ إعادة ربط الأحداث بعد التحميل ================
-window.addEventListener('load', function() {
-    setTimeout(window.debugLoginButtons, 500);
-});
-
 // ================ CONTINUE WATCHING ================
 window.saveWatchingProgress = async function(videoId, folderId, videoTitle, currentTime, duration) {
-    if (!currentUser) return;
+    if (!currentUser || !duration || duration === 0) return;
     
     try {
         const progressPercent = Math.round((currentTime / duration) * 100);
-        
-        if (progressPercent > 90) return;
+        const isCompleted = progressPercent >= 90;
         
         const progressData = {
             courseId: folderId,
             courseName: document.getElementById('folderTitleName')?.innerText || '',
             videoId: videoId,
             videoTitle: videoTitle,
-            currentTime: currentTime,
+            currentTime: isCompleted ? 0 : currentTime,
             duration: duration,
-            progressPercent: progressPercent,
+            progressPercent: isCompleted ? 100 : progressPercent,
             lastWatchedAt: new Date().toISOString(),
-            completed: false
+            completed: isCompleted
         };
         
+        // نحدّث السجل الموجود فقط (بدل إضافة سجلات لا نهائية)
         await set(ref(db, `students/${currentUser.uid}/watchingProgress/${folderId}_${videoId}`), progressData);
         
-        await push(ref(db, `students/${currentUser.uid}/watchingHistory`), {
-            ...progressData,
-            watchedAt: new Date().toLocaleString('ar-EG')
-        });
+        // لو اكتمل الفيديو نحذف كارت "أكمل المشاهدة" تلقائياً
+        if (isCompleted) {
+            await remove(ref(db, `students/${currentUser.uid}/watchingProgress/${folderId}_${videoId}`));
+        }
         
     } catch (error) {
-        console.error('Error saving progress:', error);
+        // تجاهل أخطاء حفظ التقدم بصمت
     }
 };
 
@@ -2417,40 +2426,75 @@ window.loadContinueWatching = async function() {
         const progresses = [];
         
         progressSnap.forEach(progress => {
-            progresses.push({
-                id: progress.key,
-                ...progress.val()
-            });
+            const val = progress.val();
+            // تجاهل الفيديوهات المكتملة
+            if (!val.completed) {
+                progresses.push({ id: progress.key, ...val });
+            }
         });
         
         progresses.sort((a, b) => new Date(b.lastWatchedAt) - new Date(a.lastWatchedAt));
         
+        if (progresses.length === 0) {
+            continueGrid.innerHTML = '<p class="empty-state">لا توجد فيديوهات قيد المشاهدة</p>';
+        }
+        
         progresses.slice(0, 6).forEach(prog => {
-            const videoId = prog.videoId;
-            const thumbUrl = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+            const safeCurrentTime = parseFloat(prog.currentTime) || 0;
+            const thumbUrl = `https://img.youtube.com/vi/${encodeURIComponent(prog.videoId || '')}/mqdefault.jpg`;
             
-            html += `
-                <div class="continue-card" onclick="window.continueWatching('${prog.courseId}', '${prog.videoId}', '${prog.currentTime}')">
-                    <img src="${thumbUrl}" class="continue-thumb" loading="lazy">
-                    <div class="continue-info">
-                        <h4>${escapeHTML(prog.videoTitle)}</h4>
-                        <p class="continue-course">${escapeHTML(prog.courseName)}</p>
-                        <div class="progress-bar-container">
-                            <div class="progress-fill" style="width: ${prog.progressPercent}%"></div>
-                        </div>
-                        <span class="continue-percent">${prog.progressPercent}% مكتمل</span>
-                    </div>
-                    <button class="btn-continue">
-                        <i class="fas fa-play"></i> أكمل
-                    </button>
-                </div>
-            `;
+            const card = document.createElement('div');
+            card.className = 'continue-card';
+            card.style.cursor = 'pointer';
+            
+            const img = document.createElement('img');
+            img.src = thumbUrl;
+            img.className = 'continue-thumb';
+            img.loading = 'lazy';
+            img.alt = prog.videoTitle || '';
+            
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'continue-info';
+            
+            const h4 = document.createElement('h4');
+            h4.textContent = prog.videoTitle || '';
+            
+            const coursePara = document.createElement('p');
+            coursePara.className = 'continue-course';
+            coursePara.textContent = prog.courseName || '';
+            
+            const progressBarContainer = document.createElement('div');
+            progressBarContainer.className = 'progress-bar-container';
+            const progressFill = document.createElement('div');
+            progressFill.className = 'progress-fill';
+            progressFill.style.width = `${prog.progressPercent || 0}%`;
+            progressBarContainer.appendChild(progressFill);
+            
+            const percentSpan = document.createElement('span');
+            percentSpan.className = 'continue-percent';
+            percentSpan.textContent = `${prog.progressPercent || 0}% مكتمل`;
+            
+            infoDiv.appendChild(h4);
+            infoDiv.appendChild(coursePara);
+            infoDiv.appendChild(progressBarContainer);
+            infoDiv.appendChild(percentSpan);
+            
+            const btnContinue = document.createElement('button');
+            btnContinue.className = 'btn-continue';
+            btnContinue.innerHTML = '<i class="fas fa-play"></i> أكمل';
+            
+            card.appendChild(img);
+            card.appendChild(infoDiv);
+            card.appendChild(btnContinue);
+            
+            card.addEventListener('click', () => {
+                window.continueWatching(prog.courseId, prog.videoId, safeCurrentTime);
+            });
+            
+            continueGrid.appendChild(card);
         });
         
-        continueGrid.innerHTML = html || '<p class="empty-state">لا توجد فيديوهات قيد المشاهدة</p>';
-        
     } catch (error) {
-        console.error('Error loading continue watching:', error);
     }
 };
 
@@ -2468,20 +2512,11 @@ window.continueWatching = async function(courseId, videoId, currentTime) {
         }
         const videoData = videoSnap.val();
         
-        await window.openVideo(videoData.url, videoData.title, videoId, courseId);
+        // نمرر وقت الاستئناف لـ openVideo مباشرة
+        const startSeconds = Math.floor(parseFloat(currentTime) || 0);
+        await window.openVideo(videoData.url, videoData.title, videoId, courseId, startSeconds);
         
-        setTimeout(() => {
-            const iframe = document.getElementById('youtubePlayer');
-            if (iframe) {
-                iframe.contentWindow.postMessage(JSON.stringify({
-                    event: 'command',
-                    func: 'seekTo',
-                    args: [parseFloat(currentTime) || 0, true]
-                }), 'https://www.youtube.com');
-            }
-        }, 3000);
     } catch (error) {
-        console.error('Error in continueWatching:', error);
         window.showToast('❌ حدث خطأ في متابعة المشاهدة', 'error');
     }
 };
@@ -2493,13 +2528,27 @@ function initDarkMode() {
     const darkModeIcon = document.getElementById('darkModeIcon');
 
     if (savedTheme === 'light') {
-        themeCss.href = 'style-light.css?v=2.0';
-        if (darkModeIcon) {
-            darkModeIcon.classList.remove('fa-sun');
-            darkModeIcon.classList.add('fa-moon');
-        }
+        // نحاول تحميل النسخة الفاتحة، لو مش موجودة نرجع للداكن
+        const testLink = document.createElement('link');
+        testLink.rel = 'stylesheet';
+        testLink.href = 'style-light.css?v=2.0';
+        testLink.onerror = () => {
+            localStorage.setItem('theme', 'dark');
+            if (darkModeIcon) {
+                darkModeIcon.classList.remove('fa-moon');
+                darkModeIcon.classList.add('fa-sun');
+            }
+        };
+        testLink.onload = () => {
+            if (themeCss) themeCss.href = 'style-light.css?v=2.0';
+            if (darkModeIcon) {
+                darkModeIcon.classList.remove('fa-sun');
+                darkModeIcon.classList.add('fa-moon');
+            }
+        };
+        document.head.appendChild(testLink);
     } else {
-        themeCss.href = 'style.css?v=2.0';
+        if (themeCss) themeCss.href = 'style.css?v=2.0';
         if (darkModeIcon) {
             darkModeIcon.classList.remove('fa-moon');
             darkModeIcon.classList.add('fa-sun');
@@ -2512,15 +2561,27 @@ window.toggleDarkMode = function() {
     const darkModeIcon = document.getElementById('darkModeIcon');
 
     if (!themeCss.href.includes('style-light.css')) {
-        themeCss.href = 'style-light.css?v=2.0';
-        localStorage.setItem('theme', 'light');
-        if (darkModeIcon) {
-            darkModeIcon.classList.remove('fa-sun');
-            darkModeIcon.classList.add('fa-moon');
-        }
-        window.showToast('🌞 تم تفعيل الوضع النهاري', 'success');
+        // تحقق من وجود style-light.css قبل التبديل
+        const testLink = document.createElement('link');
+        testLink.rel = 'stylesheet';
+        testLink.href = 'style-light.css?v=2.0';
+        testLink.onerror = () => {
+            window.showToast('⚠️ الوضع النهاري غير متاح حالياً', 'warning');
+            testLink.remove();
+        };
+        testLink.onload = () => {
+            testLink.remove();
+            if (themeCss) themeCss.href = 'style-light.css?v=2.0';
+            localStorage.setItem('theme', 'light');
+            if (darkModeIcon) {
+                darkModeIcon.classList.remove('fa-sun');
+                darkModeIcon.classList.add('fa-moon');
+            }
+            window.showToast('🌞 تم تفعيل الوضع النهاري', 'success');
+        };
+        document.head.appendChild(testLink);
     } else {
-        themeCss.href = 'style.css?v=2.0';
+        if (themeCss) themeCss.href = 'style.css?v=2.0';
         localStorage.setItem('theme', 'dark');
         if (darkModeIcon) {
             darkModeIcon.classList.remove('fa-moon');
@@ -2530,13 +2591,20 @@ window.toggleDarkMode = function() {
     }
 };
 
-document.addEventListener('DOMContentLoaded', function() {
-    initDarkMode();
-});
-
 // ================ PROFILE MENU ITEM ================
 window.profileMenuItem = function() {
-    window.location.href = 'profile.html';
+    // profile.html قد لا تكون موجودة - نتحقق أولاً
+    fetch('profile.html', { method: 'HEAD' })
+        .then(res => {
+            if (res.ok) {
+                window.location.href = 'profile.html';
+            } else {
+                window.showToast('🔧 صفحة البروفايل قيد التطوير', 'warning');
+            }
+        })
+        .catch(() => {
+            window.showToast('🔧 صفحة البروفايل قيد التطوير', 'warning');
+        });
 };
 
 // ================ FIREBASE INIT EVENT ================

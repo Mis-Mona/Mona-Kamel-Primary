@@ -18,7 +18,7 @@
 <link rel="stylesheet" id="theme-css" href="style.css?v=2.0">
     
     <!-- Preload hero image -->
-    <link rel="preload" as="image" href="mona.jpg">
+    <link rel="preload" as="image" href="mona.jpg" fetchpriority="high">
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
@@ -38,12 +38,6 @@
     
     <style>
         /* الأنماط الحرجة فقط */
-        .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: skeleton-loading 1.5s infinite; border-radius: 10px; min-height: 200px; }
-        @keyframes skeleton-loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-        .offline-indicator { position: fixed; top: 0; left: 0; right: 0; background: #ff7675; color: white; text-align: center; padding: 8px; font-size: 0.9rem; z-index: 10000; transform: translateY(-100%); transition: transform 0.3s ease; }
-        .offline-indicator.show { transform: translateY(0); }
-        .progress-indicator { position: fixed; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #6c5ce7, #8b7cf0); z-index: 10001; transform: scaleX(0); transform-origin: 0 0; transition: transform 0.3s ease; }
-        .progress-indicator.loading { transform: scaleX(1); }
         .toast-container { position: fixed; top: 20px; left: 20px; z-index: 10000; pointer-events: none; }
         /* حاوية الزر لتوسيطه */
 .ramadan-featured-container {
@@ -472,6 +466,12 @@
                             <option value="+20">+20 (مصر)</option>
                             <option value="+966">+966 (السعودية)</option>
                             <option value="+971">+971 (الإمارات)</option>
+                            <option value="+974">+974 (قطر)</option>
+                            <option value="+965">+965 (الكويت)</option>
+                            <option value="+973">+973 (البحرين)</option>
+                            <option value="+968">+968 (عمان)</option>
+                            <option value="+962">+962 (الأردن)</option>
+                            <option value="+970">+970 (فلسطين)</option>
                         </select>
                         <input type="tel" id="regParentPhone" class="reg-input" placeholder="1234567890" maxlength="15" style="flex:1;" inputmode="numeric" pattern="[0-9]*" name="parentphone">
                     </div>
@@ -491,6 +491,8 @@
                     <select id="regLevel" class="reg-input" name="level">
                         <option value="">-- اختر المرحلة --</option>
                         <option value="primary">المرحلة الابتدائية</option>
+                        <option value="middle">المرحلة الإعدادية</option>
+                        <option value="secondary">المرحلة الثانوية</option>
                     </select>
                     
                     <label class="reg-label required-field">الصف الدراسي</label>
@@ -644,8 +646,11 @@
             }
             if (backToHomeBtn) {
                 backToHomeBtn.addEventListener('click', function() {
-                    document.getElementById('homePage').style.display = 'block';
-                    document.getElementById('contentArea').style.display = 'none';
+                    if (window.goHome) window.goHome();
+                    else {
+                        document.getElementById('homePage').style.display = 'block';
+                        document.getElementById('contentArea').style.display = 'none';
+                    }
                 });
             }
 
@@ -668,20 +673,7 @@
             }
             if (closeQuizBtn) {
                 closeQuizBtn.addEventListener('click', function() {
-                    if (quizOverlay) {
-                        quizOverlay.style.display = 'none';
-                        const quizContainer = document.getElementById('quizContainer');
-                        if (quizContainer) quizContainer.innerHTML = "";
-                        // تنظيف مؤقتات ومستمعي الفيديو
-                        if (window._videoProgressInterval) {
-                            clearInterval(window._videoProgressInterval);
-                            window._videoProgressInterval = null;
-                        }
-                        if (window._videoMessageHandler) {
-                            window.removeEventListener('message', window._videoMessageHandler);
-                            window._videoMessageHandler = null;
-                        }
-                    }
+                    window.closeQuiz();
                 });
             }
 
