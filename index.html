@@ -158,24 +158,59 @@
     border-color: #7dd3fc !important;
 }
 
+.secondary-header-btn i {
+    color: #7dd3fc !important;
+    font-family: "Font Awesome 6 Free" !important;
+    font-weight: 900 !important;
+    display: inline-block !important;
+    visibility: visible !important;
+}
+
 .secondary-header-btn:hover {
     background: #7dd3fc !important;
     color: #0d3b6e !important;
 }
 
+.secondary-header-btn:hover i {
+    color: #0d3b6e !important;
+}
+
 .ramadan-header-btn {
     display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #1a1a1a;
+    color: #ffd966 !important;
+    border: 1.5px solid #ffd966;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.25s ease;
+    white-space: nowrap;
+}
+
+.ramadan-header-btn i {
+    font-size: 0.9rem;
+    color: #ffd966;
+}
 
 .ramadan-header-btn:hover {
     background: #ffd966;
     color: #1a1a1a !important;
+    border-color: #ffd966;
+}
+
+.ramadan-header-btn:hover i {
+    color: #1a1a1a;
 }
 
 @media (max-width: 768px) {
     .ramadan-header-btn {
-        padding: 4px 8px;
-        font-size: 0.7rem;
-        gap: 3px;
+        padding: 4px 10px;
+        font-size: 0.72rem;
+        gap: 4px;
     }
     .ramadan-header-btn i {
         font-size: 0.8rem;
@@ -184,11 +219,11 @@
 
 @media (max-width: 480px) {
     .ramadan-header-btn {
-        padding: 3px 6px;
+        padding: 3px 8px;
         font-size: 0.65rem;
     }
     .ramadan-header-btn i {
-        font-size: 0.7rem;
+        font-size: 0.75rem;
     }
 }
     </style>
@@ -212,7 +247,7 @@
     </a>
     <!-- زر منصة الإعداد والثانوي في الهيدر -->
     <a href="https://mis-mona.github.io/Mona-Kamel-Secondary/" target="_blank" rel="noopener noreferrer" class="ramadan-header-btn secondary-header-btn">
-        <i class="fas fa-school"></i> الإعداد والثانوي
+        <i class="fas fa-school" style="font-family:'Font Awesome 6 Free'; font-weight:900; color:#7dd3fc; display:inline-block;"></i> منصة الاعدادي والثانوي
     </a>
     <div id="authStatus"></div>
 </div>
@@ -301,7 +336,7 @@
         </a>
         <a href="https://mis-mona.github.io/Mona-Kamel-Secondary/" target="_blank" rel="noopener noreferrer" class="ramadan-featured-btn secondary-platform-btn">
             <i class="fas fa-school"></i>
-            <span>منصة الإعداد والثانوي</span>
+            <span>منصة الاعدادي والثانوي</span>
             <i class="fas fa-arrow-left"></i>
         </a>
     </div>
