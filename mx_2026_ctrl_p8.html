@@ -2032,6 +2032,11 @@ True" style="font-family: monospace; line-height: 1.8;"></textarea>
                             <button class="btn touch-feedback" id="gsCopyBtn" style="background:var(--secondary); color:white;" onclick="gsCopyData()">
                                 <i class="fas fa-copy"></i> نسخ كل البيانات
                             </button>
+                            <button class="btn touch-feedback" 
+                                style="background:linear-gradient(135deg,#ff7675,#d63031); color:white; font-weight:700;"
+                                onclick="gsCurrentStudentData && deleteStudentFull(gsCurrentStudentData.uid)">
+                                <i class="fas fa-user-times"></i> حذف الطالب نهائياً
+                            </button>
                             <button class="btn touch-feedback" onclick="document.getElementById('gsDetailCard').style.display='none'" style="background:var(--border-color); color:var(--text-secondary);">
                                 <i class="fas fa-times"></i> إغلاق
                             </button>
@@ -2575,7 +2580,13 @@ True" style="font-family: monospace; line-height: 1.8;"></textarea>
                             <td>${escapeHTML(s.whatsapp || '—')}</td>
                             <td>${subCount}</td>
                             <td>${s.points || 0}</td>
-                            <td><button class="btn-delete btn-icon" onclick="delData('students/${uid}')"><i class="fas fa-trash"></i></button></td>
+                            <td>
+                                <button class="btn-delete btn-icon" title="حذف شامل لكل بيانات الطالب" 
+                                    onclick="deleteStudentFull('${uid}')" 
+                                    style="background:linear-gradient(135deg,#ff7675,#d63031); color:white; border:none; padding:6px 10px; border-radius:8px; cursor:pointer; font-size:0.85rem;">
+                                    <i class="fas fa-user-times"></i>
+                                </button>
+                            </td>
                         </tr>`;
                     });
             } else {
@@ -3713,6 +3724,104 @@ True" style="font-family: monospace; line-height: 1.8;"></textarea>
                     .then(() => showToast('✅ تم الحذف'))
                     .catch(err => showToast('❌ ' + err.message, 'error'))
                     .finally(stopProgress);
+            }
+        };
+
+        // ================ DELETE STUDENT (FULL) ================
+        window.deleteStudentFull = async function(uid) {
+            if (!uid) return;
+            const studentName = allStudents[uid]?.name || uid;
+
+            // تأكيد مزدوج للحذف الكامل
+            const confirm1 = confirm(`⚠️ تحذير: سيتم حذف كل بيانات الطالب:\n"${studentName}"\n\nيشمل الحذف:\n• بيانات الطالب\n• نتائج الامتحانات\n• سجلات الدخول\n• الإشعارات\n• الاشتراكات\n• المراجعات\n\nهل أنت متأكد؟`);
+            if (!confirm1) return;
+
+            const confirm2 = confirm(`⛔ تأكيد نهائي!\n\nسيتم حذف الطالب "${studentName}" بشكل دائم ولا يمكن التراجع.\n\nاضغط موافق للمتابعة.`);
+            if (!confirm2) return;
+
+            startProgress();
+
+            try {
+                const deletions = [];
+
+                // 1️⃣ حذف بيانات الطالب الأساسية
+                deletions.push(remove(ref(db, `students/${uid}`)));
+
+                // 2️⃣ حذف نتائج الامتحانات الخاصة بهذا الطالب
+                const resultsSnap = await get(ref(db, 'quiz_results'));
+                if (resultsSnap.exists()) {
+                    resultsSnap.forEach(child => {
+                        if (child.val().uid === uid || child.val().studentUid === uid) {
+                            deletions.push(remove(ref(db, `quiz_results/${child.key}`)));
+                        }
+                    });
+                }
+
+                // 3️⃣ حذف سجلات دخول الكورسات
+                const logsSnap = await get(ref(db, 'course_access_logs'));
+                if (logsSnap.exists()) {
+                    logsSnap.forEach(child => {
+                        if (child.val().uid === uid || child.val().studentUid === uid) {
+                            deletions.push(remove(ref(db, `course_access_logs/${child.key}`)));
+                        }
+                    });
+                }
+
+                // 4️⃣ حذف إشعارات الطالب
+                const notifSnap = await get(ref(db, 'course_access_notifications'));
+                if (notifSnap.exists()) {
+                    notifSnap.forEach(child => {
+                        if (child.val().uid === uid || child.val().studentUid === uid) {
+                            deletions.push(remove(ref(db, `course_access_notifications/${child.key}`)));
+                        }
+                    });
+                }
+
+                // 5️⃣ حذف إشعارات الاشتراك
+                const subNotifSnap = await get(ref(db, 'subscription_notifications'));
+                if (subNotifSnap.exists()) {
+                    subNotifSnap.forEach(child => {
+                        if (child.val().uid === uid || child.val().studentUid === uid) {
+                            deletions.push(remove(ref(db, `subscription_notifications/${child.key}`)));
+                        }
+                    });
+                }
+
+                // 6️⃣ حذف صلاحيات الوصول للكورسات
+                const accessSnap = await get(ref(db, `student_course_access/${uid}`));
+                if (accessSnap.exists()) {
+                    deletions.push(remove(ref(db, `student_course_access/${uid}`)));
+                }
+
+                // 7️⃣ حذف المراجعات
+                const reviewsSnap = await get(ref(db, 'reviews'));
+                if (reviewsSnap.exists()) {
+                    reviewsSnap.forEach(child => {
+                        if (child.val().uid === uid || child.val().studentUid === uid) {
+                            deletions.push(remove(ref(db, `reviews/${child.key}`)));
+                        }
+                    });
+                }
+
+                // تنفيذ كل الحذف
+                await Promise.all(deletions);
+
+                stopProgress();
+                showToast(`✅ تم حذف جميع بيانات الطالب "${studentName}" بنجاح`);
+
+                // إغلاق بطاقة التفاصيل إن كانت مفتوحة
+                const detailCard = document.getElementById('gsDetailCard');
+                if (detailCard) detailCard.style.display = 'none';
+
+                // ⚠️ تنبيه حذف من Authentication
+                setTimeout(() => {
+                    alert(`ℹ️ تنبيه مهم:\n\nتم حذف كل بيانات الطالب من قاعدة البيانات.\n\n⚠️ لحذف الطالب نهائياً من Firebase Authentication (تسجيل الدخول)، يجب:\n1. الذهاب إلى Firebase Console\n2. Authentication → Users\n3. البحث عن: ${allStudents[uid]?.email || uid}\n4. حذفه يدوياً\n\nأو استخدام Firebase Admin SDK في Cloud Function.`);
+                }, 500);
+
+            } catch (err) {
+                stopProgress();
+                showToast('❌ خطأ في الحذف: ' + err.message, 'error');
+                console.error(err);
             }
         };
 
