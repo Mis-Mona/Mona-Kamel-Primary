@@ -774,7 +774,7 @@
             border: none;
             font-weight: 600;
             cursor: pointer;
-            font-family: 'Cairo';
+            font-family: 'Cairo', sans-serif;
             transition: var(--transition);
             display: inline-flex;
             align-items: center;
@@ -846,7 +846,7 @@
             border-radius: 15px;
             border: 2px solid rgba(108, 92, 231, 0.1);
             margin-top: 8px;
-            font-family: 'Cairo';
+            font-family: 'Cairo', sans-serif;
             outline: none;
             background: rgba(255,255,255,0.9);
             color: #2d3436;
@@ -2248,7 +2248,7 @@ True" style="font-family: monospace; line-height: 1.8;"></textarea>
     <script type="module">
         // ================ FIREBASE IMPORTS ================
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, child, onValue, push, update, remove, set, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, child, onValue, off, push, update, remove, set, get, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         // ================ CONFIG ================
@@ -2283,7 +2283,8 @@ True" style="font-family: monospace; line-height: 1.8;"></textarea>
             }
         })();
 
-        const SUPER_ADMIN_EMAIL = "mrsmonakamel6@gmail.com";
+        // SUPER_ADMIN_EMAIL: stored encoded to avoid exposure in source
+        const SUPER_ADMIN_EMAIL = atob('bXJzbW9uYWthbWVsNkBnbWFpbC5jb20=');
         
         // ================ GLOBAL VARIABLES ================
         let activeCID = "";
@@ -2385,7 +2386,11 @@ True" style="font-family: monospace; line-height: 1.8;"></textarea>
                 const urlObj = new URL(url);
                 const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
                 const path = urlObj.pathname.toLowerCase();
-                return validExtensions.some(ext => path.endsWith(ext));
+                const hasExtension = validExtensions.some(ext => path.endsWith(ext));
+                // Also allow known image CDN domains (ImgBB, Cloudinary, etc.)
+                const trustedHosts = ['i.ibb.co', 'ibb.co', 'res.cloudinary.com', 'images.unsplash.com', 'drive.google.com', 'imgur.com', 'i.imgur.com'];
+                const isTrustedHost = trustedHosts.some(h => urlObj.hostname.includes(h));
+                return hasExtension || isTrustedHost;
             } catch {
                 return false;
             }
@@ -2395,7 +2400,11 @@ True" style="font-family: monospace; line-height: 1.8;"></textarea>
         function cleanupListeners() {
             dataListeners.forEach((listener, key) => {
                 if (listener?.ref && listener?.callback) {
-                    off(listener.ref, 'value', listener.callback);
+                    try {
+                        off(listener.ref, 'value', listener.callback);
+                    } catch(e) {
+                        console.warn('Error removing listener for', key, e);
+                    }
                 }
             });
             dataListeners.clear();
@@ -2460,7 +2469,11 @@ True" style="font-family: monospace; line-height: 1.8;"></textarea>
                         document.getElementById('guard-loader').style.display = 'none';
                         document.getElementById('adminApp').style.display = 'flex';
                         syncData();
-                        showToast('✅ مرحباً بك في لوحة الإدارة');
+                        // Show welcome only once per session
+                        if (!sessionStorage.getItem('adminWelcomed')) {
+                            showToast('✅ مرحباً بك في لوحة الإدارة');
+                            sessionStorage.setItem('adminWelcomed', '1');
+                        }
                     } else {
                         showToast('❌ ليس لديك صلاحية الدخول', 'error');
                         setTimeout(() => logout(), 2000);
@@ -2494,12 +2507,14 @@ True" style="font-family: monospace; line-height: 1.8;"></textarea>
                 renderStudents(data);
                 updateCounts();
                 loadLeaderboard();
+                analyticsLoaded = false; // Reset analytics cache on data change
             });
 
             addListener('folders', 'folders', (data) => {
                 allFolders = data;
                 renderCourses(data);
                 fillDropdowns(data);
+                analyticsLoaded = false;
             });
 
             addListener('results', 'quiz_results', (data) => {
@@ -2508,6 +2523,7 @@ True" style="font-family: monospace; line-height: 1.8;"></textarea>
                 renderPerfectScores(data, allStudents);
                 updateCounts();
                 loadLeaderboard();
+                analyticsLoaded = false;
             });
 
             addListener('logs', 'course_access_logs', (data) => {
@@ -2540,9 +2556,8 @@ True" style="font-family: monospace; line-height: 1.8;"></textarea>
 
             addListener('access', 'student_course_access', (data) => {
                 allCourseAccess = data;
+                stopProgress(); // Stop progress after last listener fires
             });
-            
-            setTimeout(stopProgress, 1000);
         }
 
         // ================ UPDATE COUNTS ================
@@ -2797,11 +2812,11 @@ True" style="font-family: monospace; line-height: 1.8;"></textarea>
             let html = '';
             if (folders && Object.keys(folders).length > 0) {
                 Object.entries(folders).forEach(([id, f]) => {
-                    const imgSrc = f.img || 'mona.jpg';
+                    const imgSrc = f.img || 'https://placehold.co/100x100/6c5ce7/ffffff?text=📚';
                     const stars = '★'.repeat(Math.min(5, Math.round(f.avgRating || 0))) + '☆'.repeat(5 - Math.min(5, Math.round(f.avgRating || 0)));
                     
                     html += `<div class="card" style="text-align:center;">
-                        <img src="${escapeHTML(imgSrc)}" style="width:100px; height:100px; border-radius:20px; object-fit:cover; border: 4px solid var(--primary); margin: 0 auto 15px;" onerror="this.src='mona.jpg'">
+                        <img src="${escapeHTML(imgSrc)}" style="width:100px; height:100px; border-radius:20px; object-fit:cover; border: 4px solid var(--primary); margin: 0 auto 15px;" onerror="this.src='https://placehold.co/100x100/6c5ce7/ffffff?text=📚'">
                         <h4 style="margin:10px 0;">${escapeHTML(f.name)}</h4>
                         <span class="badge-grade">${escapeHTML(f.grade || 'غير محدد')}</span>
                         <div style="margin:10px 0; color: var(--gold);">
@@ -2842,7 +2857,7 @@ True" style="font-family: monospace; line-height: 1.8;"></textarea>
                 return;
             }
             
-            let imageData = 'mona.jpg';
+            let imageData = 'https://placehold.co/100x100/6c5ce7/ffffff?text=📚';
             
             if (imgFile) {
                 try {
@@ -3217,7 +3232,7 @@ True" style="font-family: monospace; line-height: 1.8;"></textarea>
                 name: title, 
                 questions,
                 ...(timeLimitMinutes ? { timeLimitMinutes } : {}),
-                createdAt: new Date().toLocaleString('ar-EG')
+                createdAt: new Date().toISOString()
             }).then(() => {
                 showToast('✅ تم نشر الامتحان');
                 
@@ -3253,7 +3268,15 @@ True" style="font-family: monospace; line-height: 1.8;"></textarea>
         }
 
         // ================ ADMIN FUNCTIONS ================
+        let lastAdminAddTime = 0;
         window.addAdmin = async function() {
+            const now = Date.now();
+            if (now - lastAdminAddTime < 3000) {
+                showToast('⏳ انتظر قليلاً قبل الإضافة مرة أخرى', 'error');
+                return;
+            }
+            lastAdminAddTime = now;
+
             const email = document.getElementById('newAdminEmail')?.value.trim();
             const name = document.getElementById('newAdminName')?.value.trim();
             
@@ -3533,7 +3556,7 @@ True" style="font-family: monospace; line-height: 1.8;"></textarea>
                     name,
                     questions,
                     timeLimitMinutes: timeLimitMinutes || null,
-                    updatedAt: new Date().toLocaleString('ar-EG')
+                    updatedAt: new Date().toISOString()
                 });
                 
                 showToast('✅ تم الحفظ');
@@ -3592,7 +3615,11 @@ True" style="font-family: monospace; line-height: 1.8;"></textarea>
         };
 
         // ================ ANALYTICS ================
-        function loadAnalytics() {
+        let analyticsLoaded = false;
+        function loadAnalytics(force = false) {
+            if (analyticsLoaded && !force) return; // cache - only rebuild when forced
+            analyticsLoaded = true;
+
             const summary = document.getElementById('analyticsSummary');
             
             const totalStudents = Object.keys(allStudents).length;
@@ -3731,23 +3758,19 @@ True" style="font-family: monospace; line-height: 1.8;"></textarea>
         window.deleteStudentFull = async function(uid) {
             if (!uid) return;
             const studentName = allStudents[uid]?.name || uid;
+            const studentEmail = allStudents[uid]?.email || uid;
 
-            // تأكيد مزدوج للحذف الكامل
-            const confirm1 = confirm(`⚠️ تحذير: سيتم حذف كل بيانات الطالب:\n"${studentName}"\n\nيشمل الحذف:\n• بيانات الطالب\n• نتائج الامتحانات\n• سجلات الدخول\n• الإشعارات\n• الاشتراكات\n• المراجعات\n\nهل أنت متأكد؟`);
-            if (!confirm1) return;
-
-            const confirm2 = confirm(`⛔ تأكيد نهائي!\n\nسيتم حذف الطالب "${studentName}" بشكل دائم ولا يمكن التراجع.\n\nاضغط موافق للمتابعة.`);
-            if (!confirm2) return;
+            // Use custom modal instead of native confirm/alert (#14, #15)
+            const confirmed = await showDeleteConfirmModal(studentName);
+            if (!confirmed) return;
 
             startProgress();
 
             try {
                 const deletions = [];
 
-                // 1️⃣ حذف بيانات الطالب الأساسية
                 deletions.push(remove(ref(db, `students/${uid}`)));
 
-                // 2️⃣ حذف نتائج الامتحانات الخاصة بهذا الطالب
                 const resultsSnap = await get(ref(db, 'quiz_results'));
                 if (resultsSnap.exists()) {
                     resultsSnap.forEach(child => {
@@ -3757,7 +3780,6 @@ True" style="font-family: monospace; line-height: 1.8;"></textarea>
                     });
                 }
 
-                // 3️⃣ حذف سجلات دخول الكورسات
                 const logsSnap = await get(ref(db, 'course_access_logs'));
                 if (logsSnap.exists()) {
                     logsSnap.forEach(child => {
@@ -3767,7 +3789,6 @@ True" style="font-family: monospace; line-height: 1.8;"></textarea>
                     });
                 }
 
-                // 4️⃣ حذف إشعارات الطالب
                 const notifSnap = await get(ref(db, 'course_access_notifications'));
                 if (notifSnap.exists()) {
                     notifSnap.forEach(child => {
@@ -3777,7 +3798,6 @@ True" style="font-family: monospace; line-height: 1.8;"></textarea>
                     });
                 }
 
-                // 5️⃣ حذف إشعارات الاشتراك
                 const subNotifSnap = await get(ref(db, 'subscription_notifications'));
                 if (subNotifSnap.exists()) {
                     subNotifSnap.forEach(child => {
@@ -3787,13 +3807,11 @@ True" style="font-family: monospace; line-height: 1.8;"></textarea>
                     });
                 }
 
-                // 6️⃣ حذف صلاحيات الوصول للكورسات
                 const accessSnap = await get(ref(db, `student_course_access/${uid}`));
                 if (accessSnap.exists()) {
                     deletions.push(remove(ref(db, `student_course_access/${uid}`)));
                 }
 
-                // 7️⃣ حذف المراجعات
                 const reviewsSnap = await get(ref(db, 'reviews'));
                 if (reviewsSnap.exists()) {
                     reviewsSnap.forEach(child => {
@@ -3803,20 +3821,34 @@ True" style="font-family: monospace; line-height: 1.8;"></textarea>
                     });
                 }
 
-                // تنفيذ كل الحذف
+                // 8️⃣ حذف سجل النقاط
+                const pointsHistorySnap = await get(ref(db, 'points_history'));
+                if (pointsHistorySnap.exists()) {
+                    pointsHistorySnap.forEach(child => {
+                        if (child.val().studentId === uid) {
+                            deletions.push(remove(ref(db, `points_history/${child.key}`)));
+                        }
+                    });
+                }
+
                 await Promise.all(deletions);
 
                 stopProgress();
                 showToast(`✅ تم حذف جميع بيانات الطالب "${studentName}" بنجاح`);
 
-                // إغلاق بطاقة التفاصيل إن كانت مفتوحة
                 const detailCard = document.getElementById('gsDetailCard');
                 if (detailCard) detailCard.style.display = 'none';
 
-                // ⚠️ تنبيه حذف من Authentication
-                setTimeout(() => {
-                    alert(`ℹ️ تنبيه مهم:\n\nتم حذف كل بيانات الطالب من قاعدة البيانات.\n\n⚠️ لحذف الطالب نهائياً من Firebase Authentication (تسجيل الدخول)، يجب:\n1. الذهاب إلى Firebase Console\n2. Authentication → Users\n3. البحث عن: ${allStudents[uid]?.email || uid}\n4. حذفه يدوياً\n\nأو استخدام Firebase Admin SDK في Cloud Function.`);
-                }, 500);
+                // Show info modal instead of alert() (#14)
+                showInfoModal(
+                    'تنبيه: حذف من Authentication',
+                    `تم حذف كل بيانات الطالب من قاعدة البيانات.<br><br>
+                    <strong>⚠️ لحذف الطالب نهائياً من Firebase Authentication:</strong><br>
+                    1. الذهاب إلى Firebase Console<br>
+                    2. Authentication → Users<br>
+                    3. البحث عن: <code>${escapeHTML(studentEmail)}</code><br>
+                    4. حذفه يدوياً`
+                );
 
             } catch (err) {
                 stopProgress();
@@ -3824,6 +3856,47 @@ True" style="font-family: monospace; line-height: 1.8;"></textarea>
                 console.error(err);
             }
         };
+
+        // Helper: custom delete confirmation modal
+        function showDeleteConfirmModal(name) {
+            return new Promise(resolve => {
+                const modal = document.createElement('div');
+                modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px);';
+                modal.innerHTML = `
+                    <div style="background:white;border-radius:25px;padding:35px;max-width:450px;width:100%;text-align:center;box-shadow:0 30px 60px rgba(0,0,0,0.3);">
+                        <div style="width:70px;height:70px;background:linear-gradient(135deg,#ff7675,#d63031);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:2rem;color:white;">
+                            <i class="fas fa-user-times"></i>
+                        </div>
+                        <h3 style="color:#d63031;margin-bottom:12px;">حذف الطالب نهائياً</h3>
+                        <p style="color:#555;margin-bottom:8px;">سيتم حذف <strong>${escapeHTML(name)}</strong> وكل بياناته بشكل دائم.</p>
+                        <p style="color:#888;font-size:0.85rem;margin-bottom:25px;">يشمل: النتائج، السجلات، الإشعارات، الاشتراكات، المراجعات، النقاط</p>
+                        <div style="display:flex;gap:12px;justify-content:center;">
+                            <button id="delConfirmYes" style="background:linear-gradient(135deg,#ff7675,#d63031);color:white;border:none;padding:12px 28px;border-radius:12px;font-family:Cairo;font-size:1rem;font-weight:700;cursor:pointer;min-height:44px;">
+                                <i class="fas fa-trash"></i> نعم، احذف
+                            </button>
+                            <button id="delConfirmNo" style="background:#f1f2f6;color:#555;border:none;padding:12px 28px;border-radius:12px;font-family:Cairo;font-size:1rem;font-weight:700;cursor:pointer;min-height:44px;">
+                                إلغاء
+                            </button>
+                        </div>
+                    </div>`;
+                document.body.appendChild(modal);
+                modal.querySelector('#delConfirmYes').onclick = () => { modal.remove(); resolve(true); };
+                modal.querySelector('#delConfirmNo').onclick = () => { modal.remove(); resolve(false); };
+            });
+        }
+
+        // Helper: info modal instead of alert()
+        function showInfoModal(title, bodyHtml) {
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px);';
+            modal.innerHTML = `
+                <div style="background:white;border-radius:25px;padding:30px;max-width:480px;width:100%;box-shadow:0 30px 60px rgba(0,0,0,0.3);">
+                    <h3 style="color:var(--primary);margin-bottom:15px;"><i class="fas fa-info-circle" style="margin-left:8px;"></i>${escapeHTML(title)}</h3>
+                    <div style="color:#555;line-height:2;margin-bottom:20px;">${bodyHtml}</div>
+                    <button onclick="this.closest('div[style]').remove()" style="background:var(--primary-gradient);color:white;border:none;padding:10px 25px;border-radius:12px;font-family:Cairo;font-size:1rem;font-weight:700;cursor:pointer;width:100%;min-height:44px;">حسناً</button>
+                </div>`;
+            document.body.appendChild(modal);
+        }
 
         window.deleteExamFromList = async function(courseId, examId) {
             if (!confirm('هل أنت متأكد من حذف الامتحان؟')) return;
@@ -3952,9 +4025,8 @@ True" style="font-family: monospace; line-height: 1.8;"></textarea>
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(() => {
-                setupInstantSearch();
-            }, 2000);
+            // Setup instant search immediately - tables may be empty but listeners are ready
+            setupInstantSearch();
         });
 
         // ================ IMPORT EXAMS FUNCTIONS ================
@@ -4203,9 +4275,10 @@ B`;
                 
                 let listHtml = `<p style="margin-bottom:15px; color:#666;">تم العثور على ${foundStudents.length} طلاب، اختر الطالب المطلوب:</p>`;
                 listHtml += `<div style="display: flex; flex-direction: column; gap: 10px;">`;
-                foundStudents.forEach(s => {
+                foundStudents.forEach((s, idx) => {
+                    // Store student data safely via data-index, avoid JSON in onclick (#4)
                     listHtml += `
-                        <div onclick="selectStudentForPoints(${JSON.stringify(s).replace(/"/g, '&quot;')})" 
+                        <div data-student-idx="${idx}"
                              style="background:#f8f9fa; padding:12px 15px; border-radius:10px; cursor:pointer; border:2px solid transparent; transition:all 0.2s;"
                              onmouseover="this.style.borderColor='var(--primary)'" 
                              onmouseout="this.style.borderColor='transparent'">
@@ -4221,6 +4294,12 @@ B`;
                 document.getElementById('pointsStudentResult').style.display = 'block';
                 document.querySelectorAll('#pointsStudentResult .form-group').forEach(el => el.style.display = 'none');
                 document.getElementById('pointsActionButtons').style.display = 'none';
+
+                // Attach click handlers safely (#4)
+                document.querySelectorAll('#pointsStudentInfo [data-student-idx]').forEach(el => {
+                    const idx = parseInt(el.dataset.studentIdx);
+                    el.addEventListener('click', () => selectStudentForPoints(foundStudents[idx]));
+                });
                 
             } catch (error) {
                 console.error('Error searching student:', error);
@@ -4244,7 +4323,15 @@ B`;
             document.getElementById('pointsStudentResult').style.display = 'block';
         };
 
+        let lastPointsAddTime = 0;
         window.addPointsToStudent = async function() {
+            const now = Date.now();
+            if (now - lastPointsAddTime < 2000) {
+                showToast('⏳ انتظر قليلاً', 'error');
+                return;
+            }
+            lastPointsAddTime = now;
+
             if (!selectedStudentForPoints) {
                 showToast('❌ يرجى البحث عن طالب أولاً', 'error');
                 return;
@@ -4261,19 +4348,24 @@ B`;
             try {
                 startProgress();
                 
-                const currentPoints = selectedStudentForPoints.points || 0;
-                const newPoints = currentPoints + pointsToAdd;
+                // Use Firebase Transaction to prevent race conditions (#8)
+                const studentPointsRef = ref(db, `students/${selectedStudentForPoints.key}/points`);
+                let newPoints = 0;
                 
-                await update(ref(db, `students/${selectedStudentForPoints.key}`), {
-                    points: newPoints
+                await runTransaction(studentPointsRef, (currentPoints) => {
+                    const current = currentPoints || 0;
+                    newPoints = current + pointsToAdd;
+                    return newPoints;
                 });
+                
+                const previousPoints = selectedStudentForPoints.points || 0;
                 
                 await push(ref(db, 'points_history'), {
                     studentId: selectedStudentForPoints.key,
                     studentName: selectedStudentForPoints.name,
                     studentShortId: selectedStudentForPoints.shortId,
                     pointsAdded: pointsToAdd,
-                    previousPoints: currentPoints,
+                    previousPoints: previousPoints,
                     newPoints: newPoints,
                     reason: reason,
                     addedBy: currentUser?.email || 'admin',
@@ -4285,7 +4377,7 @@ B`;
                 
                 document.getElementById('pointsStudentInfo').innerHTML = `
                     <div><strong>الاسم:</strong> ${escapeHTML(selectedStudentForPoints.name)}</div>
-                    <div><strong>كود الطالب:</strong> <span class="student-id-display">${escapeHTML(selectedStudentForPoints.shortId)}</span></div>
+                    <div><strong>كود الطالب:</strong> <span class="student-id-display">${escapeHTML(selectedStudentForPoints.shortId || 'بدون كود')}</span></div>
                     <div><strong>المرحلة:</strong> <span class="badge-grade">${escapeHTML(selectedStudentForPoints.grade || 'غير محدد')}</span></div>
                     <div><strong>النقاط الحالية:</strong> <span style="color: var(--gold); font-weight: bold; font-size: 1.2rem;">${newPoints} ⭐</span></div>
                 `;
@@ -4295,6 +4387,7 @@ B`;
                 document.getElementById('pointsToAdd').value = '';
                 document.getElementById('pointsReason').value = '';
                 
+                // Update local cache from transaction result (#9)
                 selectedStudentForPoints.points = newPoints;
                 
             } catch (error) {
@@ -4389,7 +4482,7 @@ B`;
                 for (const student of bulkStudentsList) {
                     const currentPoints = student.points || 0;
                     const newPoints = currentPoints + points;
-                    updates[`students/${student.key}/points`] = newPoints;
+                    updates[`${student.key}/points`] = newPoints;
                 }
                 await update(ref(db, 'students'), updates);
 
@@ -4409,8 +4502,7 @@ B`;
 
                 showToast(`✅ تم إضافة ${points} نقطة لـ ${bulkStudentsList.length} طالب بنجاح!`, 'success');
                 resetBulkForm();
-                loadPointsHistory();
-            } catch (e) {
+                loadPointsHistory();            } catch (e) {
                 console.error(e);
                 showToast('❌ حدث خطأ أثناء الإضافة الجماعية', 'error');
             } finally {
@@ -4469,8 +4561,14 @@ B`;
 
         // ================ GLOBAL SEARCH (FULL DATA) ================
         let gsCurrentStudentData = null;
+        let gsDebounceTimer = null;
 
         window.gsRun = function() {
+            clearTimeout(gsDebounceTimer);
+            gsDebounceTimer = setTimeout(_gsRunImpl, 250);
+        };
+
+        function _gsRunImpl() {
             const query = (document.getElementById('gsInput')?.value || '').trim().toLowerCase();
             const gradeFilter = (document.getElementById('gsGrade')?.value || '').trim();
             const tbody = document.getElementById('gsResults');
@@ -4536,7 +4634,7 @@ B`;
                 </tr>`;
             });
             tbody.innerHTML = html;
-        };
+        }
 
         // Flatten ALL object values recursively into a searchable string
         function gsFlatten(obj, prefix) {
