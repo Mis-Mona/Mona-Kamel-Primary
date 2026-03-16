@@ -610,37 +610,9 @@
         }
         loadProfileData();
     </script>
-    <script src="progress-visual.js?v=1.0"></script>
 
-    <script>
-        // استخدام _waitForFirebase بدلاً من setInterval غير المحدود (إصلاح #47)
-        function waitForUserAndLoad(retries = 100) {
-            if (window.currentUser) {
-                setTimeout(() => {
-                    // ✅ التحقق من وجود الدالة قبل استدعائها مع try-catch
-                    if (typeof window.loadProgressVisuals === 'function') {
-                        try {
-                            window.loadProgressVisuals();
-                        } catch (e) {
-                            console.warn('loadProgressVisuals error:', e);
-                        }
-                    }
-                    if (typeof window.loadUserBadges === 'function') {
-                        try {
-                            window.loadUserBadges(window.currentUser.uid);
-                        } catch (e) {
-                            console.warn('loadUserBadges error:', e);
-                        }
-                    }
-                }, 300);
-            } else if (retries > 0) {
-                setTimeout(() => waitForUserAndLoad(retries - 1), 100);
-            } else {
-                console.warn('⚠️ تعذّر تحميل بيانات المستخدم - غير مسجّل دخول');
-            }
-        }
-        waitForUserAndLoad();
-    </script>
+
+    
     
 </body>
 </html>

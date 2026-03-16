@@ -854,35 +854,7 @@ onAuthStateChanged(auth, async user => {
             
             await window.loadContinueWatching();
             
-            if (typeof window.checkLoginBadges === 'function') {
-                try {
-                    const today = new Date().toISOString().split('T')[0];
-                    const streakRef = ref(db, `students/${user.uid}/loginStreak`);
-                    const streakSnap = await get(streakRef);
-                    
-                    if (streakSnap.exists()) {
-                        const streakData = streakSnap.val();
-                        const lastLogin = streakData.lastLogin || '';
-                        const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-                        
-                        if (lastLogin === today) {
-                            // نفس اليوم - مش بيتعد
-                        } else if (lastLogin === yesterday) {
-                            await set(streakRef, {
-                                current: (streakData.current || 0) + 1,
-                                lastLogin: today
-                            });
-                        } else {
-                            await set(streakRef, { current: 1, lastLogin: today });
-                        }
-                    } else {
-                        await set(streakRef, { current: 1, lastLogin: today });
-                    }
-                } catch (e) {
-                }
-                
-                await window.checkLoginBadges(user.uid);
-            }
+
             
         } catch (error) {
             window.showToast("حدث خطأ أثناء تحميل بياناتك.", 'error');
@@ -1232,9 +1204,7 @@ window.confirmSubscription = async function() {
         
         await set(ref(db, `students/${currentUser.uid}/subscriptions/${currentFolderId}`), subscriptionData);
         
-        if (typeof window.checkSubscriptionBadges === 'function') {
-            await window.checkSubscriptionBadges(currentUser.uid);
-        }
+
         
         window.showToast('✅ تم الاشتراك بنجاح! يمكنك الآن مشاهدة المحتوى كاملاً.', 'success');
         window.closeSubscriptionModal();
@@ -1488,9 +1458,7 @@ window.openVideo = async function(url, title, videoId, folderId, startSeconds) {
             watchedAt: new Date().toLocaleString('ar-EG')
         });
         
-        if (typeof window.checkWatchingBadges === 'function') {
-            await window.checkWatchingBadges(currentUser.uid);
-        }
+
         
         const quizTitle = document.getElementById('quizTitle');
         const quizOverlay = document.getElementById('quizOverlay');
@@ -1791,9 +1759,7 @@ window.submitQuiz = async function(folderId, quizId) {
             time: new Date().toLocaleString('ar-EG')
         });
 
-        if (typeof window.checkExamBadges === 'function') {
-            await window.checkExamBadges(currentUser.uid);
-        }
+
 
         await window.loadPerfectScores();
         window.closeQuiz();
@@ -2075,9 +2041,7 @@ window.sendStuReview = async function() {
             stuText.value = "";
             window.showToast('✅ شكراً لك! تم إرسال تقييمك.', 'success');
             
-            if (typeof window.checkAndAwardBadge === 'function') {
-                await window.checkAndAwardBadge(currentUser.uid, 'ADD_REVIEW');
-            }
+
             
         } catch (error) {
             window.showToast('❌ حدث خطأ في إرسال التقييم', 'error');
