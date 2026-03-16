@@ -37,7 +37,7 @@
  
     
     <style>
-        /* الأنماط الحرجة فقط */
+        /* الأنماط الحرجة + المدمجة */
         .toast-container { position: fixed; top: 20px; left: 20px; z-index: 10000; pointer-events: none; }
         /* حاوية الزر لتوسيطه */
 .ramadan-featured-container {
@@ -220,7 +220,47 @@
         font-size: 0.75rem;
     }
 }
-    </style>
+
+        .whatsapp-support-btn {
+            position: fixed;
+            bottom: 25px;
+            left: 25px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #25d366, #128c7e);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2rem;
+            text-decoration: none;
+            box-shadow: 0 5px 20px rgba(37, 211, 102, 0.4);
+            transition: all 0.3s ease;
+            z-index: 9999;
+            animation: whatsappPulse 2s infinite;
+        }
+        
+        .whatsapp-support-btn:hover {
+            transform: scale(1.1) rotate(5deg);
+            box-shadow: 0 8px 30px rgba(37, 211, 102, 0.6);
+        }
+        
+        @keyframes whatsappPulse {
+            0%, 100% { box-shadow: 0 5px 20px rgba(37, 211, 102, 0.4); }
+            50% { box-shadow: 0 5px 30px rgba(37, 211, 102, 0.7); }
+        }
+        
+        @media (max-width: 768px) {
+            .whatsapp-support-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 1.6rem;
+                bottom: 15px;
+                left: 15px;
+            }
+        }
+        </style>
 </head>
 <body>
     <!-- Progress Indicator -->
@@ -258,7 +298,7 @@
     <!-- SUBSCRIPTION MODAL -->
     <div id="subscriptionModal" class="subscription-modal">
         <div class="subscription-content">
-            <i class="fas fa-times-circle" style="position: absolute; left: 20px; top: 20px; font-size: 1.5rem; color: #ccc; cursor: pointer;" id="closeSubscriptionBtn"></i>
+            <i class="fas fa-times-circle" style="position: absolute; left: 20px; top: 20px; font-size: 1.5rem; color: #ccc; cursor: pointer;" id="closeSubscriptionBtn" aria-label="إغلاق" role="button"></i>
             <h2 style="color: var(--main); margin-bottom: 20px;">🎯 اشترك في الكورس</h2>
             <div id="subCourseInfo" style="font-size: 1.2rem; font-weight: bold; margin-bottom: 20px;"></div>
             <div class="sub-option">
@@ -371,7 +411,7 @@
     <!-- LOGIN & REGISTRATION MODAL -->
     <div id="loginModal" class="modal">
         <div class="modal-content">
-            <span class="close-modal" id="closeLoginBtn">&times;</span>
+            <span class="close-modal" id="closeLoginBtn" aria-label="إغلاق" role="button">&times;</span>
             
             <!-- شاشة اختيار تسجيل دخول / حساب جديد -->
             <div id="authChoice">
@@ -408,7 +448,7 @@
                 <button type="button" class="auth-btn" id="loginEmailSubmitBtn" style="width:100%; margin-top:15px; background:var(--main); color:white; border:none; padding:12px; border-radius:12px; font-weight:bold; cursor:pointer;">
                     تسجيل الدخول
                 </button>
-                <p id="backToLoginChoiceFromEmail" style="margin-top:15px; cursor:pointer; font-size:0.8rem; color:var(--main);;">العودة للخلف</p>
+                <p id="backToLoginChoiceFromEmail" style="margin-top:15px; cursor:pointer; font-size:0.8rem; color:var(--main);">العودة للخلف</p>
             </div>
             
             <!-- نموذج تسجيل الدخول باليوزر نيم -->
@@ -419,7 +459,7 @@
                 <button type="button" class="auth-btn" id="loginUsernameSubmitBtn" style="width:100%; margin-top:15px; background:var(--main); color:white; border:none; padding:12px; border-radius:12px; font-weight:bold; cursor:pointer;">
                     تسجيل الدخول
                 </button>
-                <p id="backToLoginChoiceFromUsername" style="margin-top:15px; cursor:pointer; font-size:0.8rem; color:var(--main);;">العودة للخلف</p>
+                <p id="backToLoginChoiceFromUsername" style="margin-top:15px; cursor:pointer; font-size:0.8rem; color:var(--main);">العودة للخلف</p>
             </div>
             
             <!-- نموذج التسجيل (3 خطوات) -->
@@ -699,51 +739,9 @@
     <!-- Firebase مُهيَّأ بالكامل في script.js (Firebase v10 modular) -->
 
     <!-- زر دعم الواتساب العائم -->
-    <a href="https://chat.whatsapp.com/LGRHUx0HcSVK1HhfUCw0yp?mode=gi_t" target="_blank" rel="noopener noreferrer" class="whatsapp-support-btn" title="جروب الدعم الفني">
+    <a href="https://chat.whatsapp.com/LGRHUx0HcSVK1HhfUCw0yp?mode=gi_t" target="_blank" rel="noopener noreferrer" class="whatsapp-support-btn" title="جروب الدعم الفني" aria-label="جروب الدعم الفني على واتساب">
         <i class="fab fa-whatsapp"></i>
     </a>
-    
-    <style>
-        .whatsapp-support-btn {
-            position: fixed;
-            bottom: 25px;
-            left: 25px;
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, #25d366, #128c7e);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 2rem;
-            text-decoration: none;
-            box-shadow: 0 5px 20px rgba(37, 211, 102, 0.4);
-            transition: all 0.3s ease;
-            z-index: 9999;
-            animation: whatsappPulse 2s infinite;
-        }
-        
-        .whatsapp-support-btn:hover {
-            transform: scale(1.1) rotate(5deg);
-            box-shadow: 0 8px 30px rgba(37, 211, 102, 0.6);
-        }
-        
-        @keyframes whatsappPulse {
-            0%, 100% { box-shadow: 0 5px 20px rgba(37, 211, 102, 0.4); }
-            50% { box-shadow: 0 5px 30px rgba(37, 211, 102, 0.7); }
-        }
-        
-        @media (max-width: 768px) {
-            .whatsapp-support-btn {
-                width: 50px;
-                height: 50px;
-                font-size: 1.6rem;
-                bottom: 15px;
-                left: 15px;
-            }
-        }
-    </style>
     
 </body>
 </html>

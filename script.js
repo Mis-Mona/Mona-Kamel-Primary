@@ -158,17 +158,29 @@ window.showToast = function(message, type = 'success', duration = 3000) {
 };
 
 // ================ CACHE FUNCTIONS ================
+const pendingRequests = new Map();
+
 async function getCachedStudentData(uid) {
     const now = Date.now();
     if (cacheTime[uid] && (now - cacheTime[uid] < CACHE_DURATION)) {
         return studentDataCache[uid];
     }
-    const snap = await get(child(dbRef, `students/${uid}`));
-    if (snap.exists()) {
-        studentDataCache[uid] = snap.val();
-        cacheTime[uid] = now;
+    if (pendingRequests.has(uid)) {
+        return pendingRequests.get(uid);
     }
-    return studentDataCache[uid] || null;
+    const promise = get(child(dbRef, `students/${uid}`)).then(snap => {
+        if (snap.exists()) {
+            studentDataCache[uid] = snap.val();
+            cacheTime[uid] = Date.now();
+        }
+        pendingRequests.delete(uid);
+        return studentDataCache[uid] || null;
+    }).catch(err => {
+        pendingRequests.delete(uid);
+        throw err;
+    });
+    pendingRequests.set(uid, promise);
+    return promise;
 }
 
 function clearExpiredCache() {
@@ -716,6 +728,7 @@ window.loginUsernameSubmit = async function(e) {
     window.startProgress();
     
     try {
+        const usernameSnap = await get(ref(db, `usernames/${username}`));
         
         if (!usernameSnap.exists()) {
             window.showToast('❌ اسم المستخدم غير موجود', 'error');
@@ -976,7 +989,8 @@ window.loadPerfectScores = async function() {
                 perfectScores.push({
                     studentName: res.studentName || res.student || 'طالب',
                     examName: res.quiz || 'امتحان',
-                    grade: res.studentGrade || 'غير محدد'
+                    grade: res.studentGrade || 'غير محدد',
+                    time: res.time || ''
                 });
             }
         });
@@ -984,7 +998,8 @@ window.loadPerfectScores = async function() {
         // ✅ عرض آخر 10 درجات نهائية فقط
         if (perfectScores.length > 0) {
             let html = '';
-            perfectScores.slice(-10).forEach(ps => {
+            perfectScores.sort((a, b) => new Date(b.time || 0) - new Date(a.time || 0));
+            perfectScores.slice(0, 10).forEach(ps => {
                 html += `<div class="perfect-card">
                     <div class="perfect-name">
                         <i class="fas fa-user-graduate"></i>
@@ -1263,10 +1278,10 @@ window.loadCourseContent = async function(folderId, folderName, hasAccess) {
         resultsSnap = results[2];
         
         if (resultsSnap.exists()) {
-            const results = resultsSnap.val();
-            Object.keys(results).forEach(quizId => {
-                if (results[quizId].courseId === folderId) {
-                    examResultsMap[quizId] = results[quizId];
+            const examResultsData = resultsSnap.val();
+            Object.keys(examResultsData).forEach(quizId => {
+                if (examResultsData[quizId].courseId === folderId) {
+                    examResultsMap[quizId] = examResultsData[quizId];
                 }
             });
         }
@@ -1523,6 +1538,7 @@ window.openVideo = async function(url, title, videoId, folderId, startSeconds) {
             
             window._videoMessageHandler = (event) => {
                 try {
+                    if (event.origin !== 'https://www.youtube.com') return;
                     const data = JSON.parse(event.data);
                     if (data.event === 'infoDelivery' && data.info && data.info.currentTime) {
                         const currentTime = data.info.currentTime;
@@ -2576,18 +2592,7 @@ window.toggleDarkMode = function() {
 
 // ================ PROFILE MENU ITEM ================
 window.profileMenuItem = function() {
-    // profile.html قد لا تكون موجودة - نتحقق أولاً
-    fetch('profile.html', { method: 'HEAD' })
-        .then(res => {
-            if (res.ok) {
-                window.location.href = 'profile.html';
-            } else {
-                window.showToast('🔧 صفحة البروفايل قيد التطوير', 'warning');
-            }
-        })
-        .catch(() => {
-            window.showToast('🔧 صفحة البروفايل قيد التطوير', 'warning');
-        });
+    window.location.href = 'profile.html';
 };
 
 // ================ FIREBASE INIT EVENT ================

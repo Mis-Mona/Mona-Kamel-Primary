@@ -2274,7 +2274,6 @@ True" style="font-family: monospace; line-height: 1.8;"></textarea>
                 const keySnap = await get(child(ref(db), 'settings/imgbbKey'));
                 if (keySnap.exists()) {
                     IMGBB_API_KEY = keySnap.val();
-                    console.log('✅ تم تحميل مفتاح ImgBB بنجاح');
                 } else {
                     console.warn('⚠️ مفتاح ImgBB غير مُعرَّف في settings/imgbbKey');
                 }
@@ -2283,8 +2282,7 @@ True" style="font-family: monospace; line-height: 1.8;"></textarea>
             }
         })();
 
-        // SUPER_ADMIN_EMAIL: stored encoded to avoid exposure in source
-        const SUPER_ADMIN_EMAIL = atob('bXJzbW9uYWthbWVsNkBnbWFpbC5jb20=');
+        const SUPER_ADMIN_EMAIL = "mrsmonakamel6@gmail.com";
         
         // ================ GLOBAL VARIABLES ================
         let activeCID = "";
@@ -2456,7 +2454,7 @@ True" style="font-family: monospace; line-height: 1.8;"></textarea>
                     currentUser = user;
                     
                     const isSuperAdmin = user.email === SUPER_ADMIN_EMAIL;
-                    const emailKey = user.email.replace(/[@.]/g, '_');
+                    const emailKey = user.email.replace(/[@.#$[\]]/g, '_');
                     const adminSnap = await get(ref(db, `admins/${emailKey}`));
                     const isAddedAdmin = adminSnap.exists();
                     if (isAddedAdmin) {

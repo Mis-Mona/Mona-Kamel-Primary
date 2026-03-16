@@ -269,17 +269,17 @@
             
             <div class="form-group">
                 <label>كلمة المرور الحالية</label>
-                <input type="password" id="currentPassword" class="settings-input">
+                <input type="password" id="currentPassword" class="settings-input" autocomplete="current-password">
             </div>
             
             <div class="form-group">
                 <label>كلمة المرور الجديدة</label>
-                <input type="password" id="newPassword" class="settings-input">
+                <input type="password" id="newPassword" class="settings-input" autocomplete="new-password">
             </div>
             
             <div class="form-group">
                 <label>تأكيد كلمة المرور الجديدة</label>
-                <input type="password" id="confirmNewPassword" class="settings-input">
+                <input type="password" id="confirmNewPassword" class="settings-input" autocomplete="new-password">
             </div>
             
             <div class="modal-actions">
@@ -303,33 +303,25 @@
     </footer>
 
     <script>
-        // في profile.html: goHome يرجع لـ index.html - يتعرف قبل script.js
+        // في profile.html: goHome يرجع لـ index.html
         window.goHome = function() {
             window.location.href = 'index.html';
         };
-        // logout يرجع لـ index.html بعد تسجيل الخروج
-        const _origLogout = window.logout;
         window.logout = async function() {
-            if (typeof _origLogout === 'function') await _origLogout();
+            const _orig = window._origLogout;
+            if (typeof _orig === 'function') await _orig();
             window.location.href = 'index.html';
         };
     </script>
 
-    <!-- Scripts - يجب تحميل script.js أولاً (module) ثم باقي السكريبتات بـ defer -->
-    <script type="module" src="script.js"></script>
+    <!-- Scripts -->
+    <script type="module" src="script.js?v=2.2"></script>
     <script>
-        // نعيد تعريف goHome بعد تحميل script.js مباشرة
         document.addEventListener('DOMContentLoaded', function() {
-            // نستخدم MutationObserver أو setTimeout لضمان التنفيذ بعد script.js
-            function overrideGoHome() {
-                window.goHome = function() {
-                    window.location.href = 'index.html';
-                };
-            }
-            overrideGoHome();
-            // نعيد التعريف بعد ثانية كـ fallback لأن script.js module قد يأخر
-            setTimeout(overrideGoHome, 500);
-            setTimeout(overrideGoHome, 1500);
+            // ضمان override بعد تحميل script.js
+            window.goHome = function() {
+                window.location.href = 'index.html';
+            };
         });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -385,6 +377,11 @@
                 return;
             }
 
+            if (name.length > 100) {
+                window.showToast('❌ الاسم طويل جداً (الحد الأقصى 100 حرف)', 'error');
+                return;
+            }
+
             const fullWhatsapp = whatsapp ? (countryCode + whatsapp) : '';
             const fullParentPhone = parentPhone ? (parentCountryCode + parentPhone) : '';
 
@@ -402,8 +399,7 @@
                 document.getElementById('profileGrade').textContent = grade || '';
                 window.showToast('✅ تم حفظ التغييرات بنجاح', 'success');
             } catch (error) {
-                console.error('Error saving profile:', error);
-                window.showToast('❌ حدث خطأ أثناء الحفظ: ' + error.message, 'error');
+                window.showToast('❌ حدث خطأ أثناء الحفظ', 'error');
             } finally {
                 window.stopProgress();
             }
@@ -481,7 +477,7 @@
             }
         }
 
-        function loadProfileData(retries = 100) {
+        function loadProfileData(retries = 50) {
             if (window.currentUser && window.db && window.get && window.child && window.dbRef) {
                 window.get(window.child(window.dbRef, `students/${window.currentUser.uid}`)).then(snap => {
                     if (!snap.exists()) {
@@ -507,13 +503,19 @@
                     document.getElementById('settingsParentPhone').value = parentRaw.replace(/^\+\d+/, '');
                     document.getElementById('settingsGrade').value = data.grade || '';
                     document.getElementById('settingsStudentId').textContent = data.shortId || '---';
-                }).catch(err => console.error('Error loading profile data:', err));
+                }).catch(() => {
+                    window.showToast && window.showToast('❌ حدث خطأ في تحميل البيانات', 'error');
+                });
             } else if (retries > 0) {
                 setTimeout(() => loadProfileData(retries - 1), 100);
             }
         }
         loadProfileData();
         window.generateInitialsAvatar = generateInitialsAvatar;
+
+        // استخدام firebaseReady كـ trigger أساسي بدل الاعتماد فقط على الـ polling
+        window.addEventListener('firebaseReady', () => loadProfileData());
+        window.addEventListener('authStateChanged', () => loadProfileData());
     </script>
 
 
