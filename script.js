@@ -830,12 +830,31 @@ onAuthStateChanged(auth, async user => {
                 myShortId = "";
             }
             
+            // بناء صورة الأفاتار في الهيدر
+            let avatarHtml = '';
+            if (user.photoURL) {
+                avatarHtml = `<img src="${user.photoURL}" referrerpolicy="no-referrer"
+                    style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid var(--main, #6c5ce7);"
+                    onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <span style="display:none;width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#6c5ce7,#a29bfe);align-items:center;justify-content:center;font-weight:bold;color:#fff;font-size:14px;">
+                        ${escapeHTML((displayName||user.email||'?')[0].toUpperCase())}
+                    </span>`;
+            } else {
+                const initials = (() => {
+                    const parts = (displayName || user.email || 'طالب').trim().split(/\s+/);
+                    return parts.length >= 2 ? (parts[0][0] + parts[1][0]).toUpperCase() : parts[0].substring(0,2).toUpperCase();
+                })();
+                const colorIdx = (displayName || user.email || 'U').charCodeAt(0) % 6;
+                const gradients = ['135deg,#6c5ce7,#a29bfe','135deg,#00b894,#00cec9','135deg,#e17055,#fab1a0','135deg,#0984e3,#74b9ff','135deg,#d63031,#ff7675','135deg,#6c5ce7,#fd79a8'];
+                avatarHtml = `<span style="display:inline-flex;width:34px;height:34px;border-radius:50%;background:linear-gradient(${gradients[colorIdx]});align-items:center;justify-content:center;font-weight:bold;color:#fff;font-size:14px;border:2px solid rgba(255,255,255,0.3);">${initials}</span>`;
+            }
+
             statusDiv.innerHTML = `
                 <span class="student-id-badge" style="margin-left: 10px;">
                     <i class="fas fa-id-card"></i> ${escapeHTML(myShortId)}
                 </span>
-                <div class="hamburger-menu" onclick="window.toggleMenu()">
-                    <i class="fas fa-bars"></i>
+                <div class="hamburger-menu" onclick="window.toggleMenu()" style="display:flex;align-items:center;gap:6px;padding:4px 10px;">
+                    ${avatarHtml}
                 </div>
             `;
             
