@@ -402,7 +402,7 @@ button,
 
 /* ================ HEADER ================ */
 header {
-    padding: 15px 5%;
+    padding: 12px 4%;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -410,20 +410,23 @@ header {
     position: sticky;
     top: 0;
     z-index: 1000;
-    flex-wrap: wrap;
-    gap: 10px;
+    flex-wrap: nowrap;
+    gap: 8px;
     border-bottom: 1px solid var(--border-color);
     backdrop-filter: blur(10px);
     background: rgba(255, 255, 255, 0.95);
+    min-height: 60px;
 }
 
 .logo-text {
     font-weight: 900;
     color: var(--main);
-    font-size: 1.6rem;
+    font-size: 1.4rem;
     cursor: pointer;
     transition: var(--transition);
     user-select: none;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .logo-text:hover {
@@ -432,16 +435,19 @@ header {
 }
 
 @media (max-width: 768px) {
-    .logo-text { font-size: 1.2rem; }
-    header { padding: 10px 3%; }
+    .logo-text { font-size: 1rem; }
+    header { padding: 8px 3%; }
 }
 
 /* ================ HEADER CONTROLS ================ */
 .header-controls {
     display: flex;
     align-items: center;
-    gap: 15px;
-    flex-wrap: wrap;
+    gap: 8px;
+    flex-wrap: nowrap;
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
 }
 
 /* ================ BUTTONS ================ */
@@ -499,6 +505,7 @@ header {
     border-radius: 10px;
     transition: 0.3s;
     display: inline-block;
+    position: relative;
 }
 
 .hamburger-menu:hover {
@@ -507,18 +514,31 @@ header {
 }
 
 .dropdown-menu {
-    position: absolute;
+    position: fixed;
     top: 70px;
-    left: 20px;
+    right: 15px;
+    left: auto;
     background: var(--card-bg);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
     border-radius: 15px;
-    width: 250px;
+    width: 220px;
     padding: 10px 0;
-    z-index: 1001;
+    z-index: 99999;
     border: 1px solid var(--border-color);
     display: none;
     animation: slideDown 0.3s ease;
+}
+
+/* Overlay خفي لإغلاق الـ dropdown لما المستخدم يضغط برا */
+.dropdown-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 99998;
+    display: none;
+    background: transparent;
 }
 
 @keyframes slideDown {
@@ -3547,13 +3567,15 @@ body.dark-mode .whatsapp-group-card {
         white-space: nowrap;
     }
     
+    /* الـ dropdown دايماً fixed - مش بيتأثر بالـ scroll */
     .dropdown-menu, #menuDropdown {
         position: fixed !important;
-        top: auto !important;
-        right: 10px !important;
-        left: 10px !important;
-        max-width: calc(100vw - 20px) !important;
-        z-index: 9999 !important;
+        top: 65px !important;
+        right: 15px !important;
+        left: auto !important;
+        width: 200px !important;
+        max-width: calc(100vw - 30px) !important;
+        z-index: 99999 !important;
     }
     
     .modal-content button, .modal button.btn {

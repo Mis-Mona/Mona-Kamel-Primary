@@ -913,21 +913,50 @@ onAuthStateChanged(auth, async user => {
 // ================ HAMBURGER MENU ================
 window.toggleMenu = function() {
     const menu = document.getElementById('menuDropdown');
-    if (menu) {
-        menu.style.display = menu.style.display === 'none' || menu.style.display === '' ? 'block' : 'none';
+    const overlay = document.getElementById('dropdownOverlay');
+    if (!menu) return;
+    
+    const isOpen = menu.style.display === 'block';
+    
+    if (isOpen) {
+        menu.style.display = 'none';
+        if (overlay) overlay.style.display = 'none';
+    } else {
+        // حساب موضع الـ dropdown بناءً على الـ hamburger button
+        const hamburger = document.querySelector('.hamburger-menu');
+        if (hamburger) {
+            const rect = hamburger.getBoundingClientRect();
+            menu.style.top = (rect.bottom + 8) + 'px';
+            menu.style.right = (window.innerWidth - rect.right) + 'px';
+            menu.style.left = 'auto';
+        }
+        menu.style.display = 'block';
+        if (overlay) overlay.style.display = 'block';
     }
 };
 
 window.closeMenu = function() {
     const menu = document.getElementById('menuDropdown');
+    const overlay = document.getElementById('dropdownOverlay');
     if (menu) menu.style.display = 'none';
+    if (overlay) overlay.style.display = 'none';
 };
+
+// إغلاق الـ dropdown لما يضغط على الـ overlay
+document.addEventListener('DOMContentLoaded', function() {
+    const overlay = document.getElementById('dropdownOverlay');
+    if (overlay) {
+        overlay.addEventListener('click', window.closeMenu);
+    }
+});
 
 document.addEventListener('click', (e) => {
     const menu = document.getElementById('menuDropdown');
     const hamburger = document.querySelector('.hamburger-menu');
+    const overlay = document.getElementById('dropdownOverlay');
     if (menu && hamburger && !menu.contains(e.target) && !hamburger.contains(e.target)) {
         menu.style.display = 'none';
+        if (overlay) overlay.style.display = 'none';
     }
 });
 
