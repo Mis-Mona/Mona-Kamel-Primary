@@ -270,11 +270,18 @@ if (!courseKey) {
 }
 
 // ====== AUTH ======
+let authResolved = false;
 auth.onAuthStateChanged(async user => {
+  // تجاهل أول استدعاء لو Firebase لسه بيتحقق
+  if (!authResolved) authResolved = true;
   if (!user) {
-    // غير مسجل - اظهر حاجز التسجيل
-    document.getElementById('authWall').classList.add('show');
-    document.getElementById('loadingScreen').style.display = 'none';
+    // غير مسجل - اظهر حاجز التسجيل بس بعد تأخير بسيط عشان Firebase يتأكد
+    setTimeout(() => {
+      if (!auth.currentUser) {
+        document.getElementById('authWall').classList.add('show');
+        document.getElementById('loadingScreen').style.display = 'none';
+      }
+    }, 1000);
     return;
   }
   // حمّل بيانات الطالب
@@ -330,8 +337,12 @@ async function loadCourse() {
       document.getElementById('examsTabBtn').innerHTML = `<i class="fas fa-file-alt"></i> الامتحانات (${courseExams.length})`;
     }
 
-    // تحميل درجات الطالب الحالي
-    const gradesSnap = await db.ref('website/grades').once('value');
+    // تحميل درجات الطالب الحالي فقط
+    const uid = currentUser.uid || currentUser._key;
+    const gradesSnap = await db.ref('website/grades')
+      .orderByChild('studentUid')
+      .equalTo(uid)
+      .once('value');
     allGrades = gradesSnap.exists() ? gradesSnap.val() : {};
 
     renderVideosList();
@@ -619,10 +630,13 @@ function submitExam() {
     </div>`;
 
   // تحديث قائمة الامتحانات
-  db.ref('website/grades').once('value').then(s => {
-    allGrades = s.exists() ? s.val() : {};
-    renderExamsList();
-  });
+  const uidRefresh = currentUser ? (currentUser.uid || currentUser._key) : null;
+  if (uidRefresh) {
+    db.ref('website/grades').orderByChild('studentUid').equalTo(uidRefresh).once('value').then(s => {
+      allGrades = s.exists() ? s.val() : {};
+      renderExamsList();
+    });
+  }
 }
 </script>
 </body>

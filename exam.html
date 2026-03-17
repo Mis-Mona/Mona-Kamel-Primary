@@ -221,8 +221,12 @@ if (!examKey) { window.location.href = 'index.html'; }
 // ====== AUTH ======
 auth.onAuthStateChanged(async user => {
   if (!user) {
-    document.getElementById('authWall').classList.add('show');
-    document.getElementById('loadingScreen').style.display = 'none';
+    setTimeout(() => {
+      if (!auth.currentUser) {
+        document.getElementById('authWall').classList.add('show');
+        document.getElementById('loadingScreen').style.display = 'none';
+      }
+    }, 1000);
     return;
   }
   try {
