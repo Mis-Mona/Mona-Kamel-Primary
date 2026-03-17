@@ -871,6 +871,11 @@ onAuthStateChanged(auth, async user => {
                 </div>
             `;
             
+            // تعبية هيدر القائمة
+            if (window.updateDropdownUserHeader) {
+                window.updateDropdownUserHeader(displayName, myShortId, avatarHtml);
+            }
+            
             if (isAdminUser) {
                 statusDiv.innerHTML += `<button type="button" class="auth-btn" onclick="window.location.href='mx_2026_ctrl_p8.html'" style="margin-right:10px; background:var(--dark); color:white; border:none; padding:8px 16px; border-radius:10px; font-weight:bold; cursor:pointer;">الإدارة</button>`;
             }

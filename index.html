@@ -39,58 +39,63 @@
     <style>
         /* الأنماط الحرجة + المدمجة */
         .toast-container { position: fixed; top: 20px; left: 20px; z-index: 10000; pointer-events: none; }
-        /* حاوية الزر لتوسيطه */
+        /* حاوية الأزرار المميزة */
 .ramadan-featured-container {
     text-align: center;
-    margin: 30px 0 40px;
+    margin: 20px 0 30px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    align-items: center;
+    padding: 0 10px;
 }
 
-/* تصميم الزر الرئيسي */
+/* تصميم الزر المميز - مضغوط ومتناسق */
 .ramadan-featured-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 20px;
+    gap: 10px;
     background: linear-gradient(145deg, #1a1a1a, #2d2d2d);
-    color: #ffd966; /* لون ذهبي */
-    font-size: 2.2rem;
-    font-weight: 900;
-    padding: 25px 60px;
-    border-radius: 80px;
+    color: #ffd966;
+    font-size: 1rem;
+    font-weight: 700;
+    padding: 12px 24px;
+    border-radius: 50px;
     text-decoration: none;
-    box-shadow: 
-        0 15px 30px rgba(0,0,0,0.5),
-        0 0 0 3px #ffd966 inset;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4), 0 0 0 2px #ffd966 inset;
     transition: all 0.3s ease;
     border: none;
     cursor: pointer;
-    letter-spacing: 2px;
+    white-space: nowrap;
     position: relative;
     overflow: hidden;
+    min-height: 44px;
+    font-family: 'Cairo', sans-serif;
 }
 
 /* الأيقونات داخل الزر */
 .ramadan-featured-btn i {
-    font-size: 2.8rem;
+    font-size: 1.1rem;
     color: #ffd966;
-    filter: drop-shadow(0 0 8px #ffaa00);
+    filter: drop-shadow(0 0 4px #ffaa00);
     transition: transform 0.3s ease;
+    flex-shrink: 0;
 }
 
-/* تأثير حركة بسيط عند التحويم */
+/* تأثير حركة عند التحويم */
 .ramadan-featured-btn:hover {
-    transform: translateY(-8px) scale(1.02);
-    box-shadow: 
-        0 20px 40px rgba(0,0,0,0.6),
-        0 0 0 4px #ffd966 inset;
-    background: linear-gradient(145deg, #2d2d2d, #1a1a1a);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.5), 0 0 0 2px #ffd966 inset;
+    background: linear-gradient(145deg, #2d2d2d, #3a3a3a);
 }
 
 .ramadan-featured-btn:hover i {
     transform: rotate(5deg) scale(1.1);
 }
 
-/* إضافة تأثير لمعان خلفي */
+/* تأثير لمعان خفي */
 .ramadan-featured-btn::after {
     content: '';
     position: absolute;
@@ -98,9 +103,9 @@
     left: -60%;
     width: 200%;
     height: 200%;
-    background: radial-gradient(circle, rgba(255,217,102,0.2) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(255,217,102,0.15) 0%, transparent 70%);
     opacity: 0;
-    transition: opacity 0.5s;
+    transition: opacity 0.4s;
 }
 
 .ramadan-featured-btn:hover::after {
@@ -108,14 +113,17 @@
 }
 
 /* تحسين للهواتف */
-@media (max-width: 768px) {
+@media (max-width: 480px) {
     .ramadan-featured-btn {
-        font-size: 1.6rem;
-        padding: 18px 30px;
-        gap: 12px;
+        font-size: 0.9rem;
+        padding: 10px 18px;
+        gap: 8px;
+        width: 100%;
+        justify-content: center;
+        max-width: 320px;
     }
     .ramadan-featured-btn i {
-        font-size: 2rem;
+        font-size: 1rem;
     }
 }
 
@@ -123,9 +131,7 @@
 .secondary-platform-btn {
     background: linear-gradient(145deg, #0d3b6e, #1a6b8a) !important;
     color: #7dd3fc !important;
-    box-shadow: 
-        0 15px 30px rgba(0,0,0,0.5),
-        0 0 0 3px #7dd3fc inset !important;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4), 0 0 0 2px #7dd3fc inset !important;
 }
 
 .secondary-platform-btn i {
@@ -177,12 +183,14 @@
     color: #ffd966 !important;
     border: 1.5px solid #ffd966;
     border-radius: 20px;
-    padding: 6px 14px;
-    font-size: 0.8rem;
+    padding: 7px 14px;
+    font-size: 0.82rem;
     font-weight: 700;
     text-decoration: none;
     transition: all 0.25s ease;
     white-space: nowrap;
+    min-height: 38px;
+    font-family: 'Cairo', sans-serif;
 }
 
 .ramadan-header-btn i {
@@ -292,10 +300,19 @@
 
     <!-- HAMBURGER DROPDOWN -->
     <div id="menuDropdown" class="dropdown-menu">
-        <a id="homeMenuItem" style="display: none;" class="touch-feedback"><i class="fas fa-home" style="margin-left: 10px;"></i> الرئيسية</a>
-        <a id="profileMenuItem" style="display: none;" class="touch-feedback" onclick="window.profileMenuItem()"><i class="fas fa-user" style="margin-left: 10px;"></i> الملف الشخصي</a>
+        <!-- هيدر المستخدم - هيتعبى من الـ JS -->
+        <div id="dropdownUserHeader" style="display:none;"></div>
+
+        <a id="homeMenuItem" style="display: none;" class="touch-feedback">
+            <i class="fas fa-home"></i> الرئيسية
+        </a>
+        <a id="profileMenuItem" style="display: none;" class="touch-feedback" onclick="window.profileMenuItem()">
+            <i class="fas fa-user"></i> الملف الشخصي
+        </a>
         <hr id="menuDivider" style="display: none;">
-        <a id="logoutMenuItem" style="display: none; color: var(--danger);" class="touch-feedback"><i class="fas fa-sign-out-alt" style="margin-left: 10px;"></i> تسجيل الخروج</a>
+        <a id="logoutMenuItem" style="display: none;" class="touch-feedback">
+            <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
+        </a>
     </div>
 
     <!-- SUBSCRIPTION MODAL -->
@@ -734,6 +751,21 @@
                     input.style.fontSize = '16px';
                 });
             });
+
+            // تعبية هيدر القائمة بمعلومات المستخدم
+            window.updateDropdownUserHeader = function(name, shortId, avatarHtml) {
+                const header = document.getElementById('dropdownUserHeader');
+                if (!header) return;
+                header.style.display = 'block';
+                header.className = 'dropdown-user-header';
+                header.innerHTML = `
+                    <div class="user-avatar-sm">${avatarHtml || '<i class="fas fa-user"></i>'}</div>
+                    <div>
+                        <div class="user-name-sm">${name || 'الطالب'}</div>
+                        ${shortId ? `<div class="user-id-sm">ID: ${shortId}</div>` : ''}
+                    </div>
+                `;
+            };
         });
     </script>
 

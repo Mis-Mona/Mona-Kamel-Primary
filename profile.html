@@ -14,8 +14,451 @@
     
     <!-- Main CSS -->
     <link rel="stylesheet" href="style.css">
-    
-   
+
+    <style>
+        /* ===== PROFILE PAGE - RESPONSIVE FIXES ===== */
+
+        /* حاوية البروفيل الرئيسية */
+        .profile-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 15px 40px;
+        }
+
+        /* غلاف الكوفر */
+        .profile-cover {
+            height: 180px;
+            background: linear-gradient(135deg, var(--main, #6c5ce7), var(--dark, #4834d4));
+            border-radius: 0 0 30px 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .profile-cover::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 70% 50%, rgba(255,255,255,0.15) 0%, transparent 60%);
+        }
+
+        .profile-cover-overlay {
+            position: absolute;
+            inset: 0;
+        }
+
+        /* كارد الهيدر */
+        .profile-header-card {
+            background: var(--card-bg, #fff);
+            border-radius: 20px;
+            padding: 20px 25px;
+            margin: -50px 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            border: 1px solid var(--border-color, #eee);
+            position: relative;
+            z-index: 2;
+        }
+
+        /* الأفاتار */
+        .profile-avatar-wrapper {
+            flex-shrink: 0;
+        }
+
+        .profile-avatar {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--main, #6c5ce7), var(--dark, #4834d4));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            color: white;
+            border: 4px solid white;
+            box-shadow: 0 5px 15px rgba(108,92,231,0.3);
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .profile-avatar:hover { transform: scale(1.05); }
+
+        /* بيانات الطالب */
+        .profile-title {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .profile-title h1 {
+            font-size: 1.4rem;
+            font-weight: 900;
+            color: var(--dark, #4834d4);
+            margin-bottom: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .profile-title p {
+            font-size: 0.85rem;
+            color: var(--text-secondary, #666);
+            margin-bottom: 6px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .profile-grade {
+            background: linear-gradient(135deg, #f0eeff, #e5e2ff);
+            color: var(--main, #6c5ce7);
+            padding: 3px 12px;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            display: inline-block;
+        }
+
+        /* إحصائيات الهيدر */
+        .profile-stats-header {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            display: block;
+            font-size: 1.4rem;
+            font-weight: 900;
+            color: var(--main, #6c5ce7);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary, #666);
+            font-weight: 600;
+        }
+
+        /* Tabs */
+        .profile-tabs-container {
+            display: flex;
+            background: var(--card-bg, #fff);
+            border-radius: 15px;
+            padding: 6px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color, #eee);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+            gap: 4px;
+        }
+
+        .profile-tab-btn {
+            flex: 1;
+            padding: 10px 12px;
+            border: none;
+            background: transparent;
+            border-radius: 10px;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--text-secondary, #666);
+            cursor: pointer;
+            transition: all 0.25s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            min-height: 44px;
+        }
+
+        .profile-tab-btn.active {
+            background: var(--main, #6c5ce7);
+            color: white;
+            box-shadow: 0 4px 12px rgba(108,92,231,0.3);
+        }
+
+        .profile-tab-btn:hover:not(.active) {
+            background: var(--hover-bg, #f0eeff);
+            color: var(--main, #6c5ce7);
+        }
+
+        /* محتوى التاب */
+        .profile-tab-content {
+            display: none;
+        }
+
+        .profile-tab-content.active {
+            display: block;
+            animation: fadeInUp 0.4s ease;
+        }
+
+        /* Stats Grid */
+        .stats-grid-modern {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stats-card {
+            background: var(--card-bg, #fff);
+            border-radius: 15px;
+            padding: 18px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border: 1px solid var(--border-color, #eee);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+            transition: transform 0.3s;
+        }
+
+        .stats-card:hover { transform: translateY(-3px); }
+
+        .stats-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+
+        .stats-details {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .stats-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary, #666);
+            font-weight: 600;
+        }
+
+        .stats-number {
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: var(--dark, #4834d4);
+        }
+
+        /* Charts */
+        .charts-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .chart-card {
+            background: var(--card-bg, #fff);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid var(--border-color, #eee);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+        }
+
+        .chart-card h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--dark, #4834d4);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Achievements */
+        .achievements-section {
+            background: var(--card-bg, #fff);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid var(--border-color, #eee);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+            margin-bottom: 20px;
+        }
+
+        .achievements-section h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--dark, #4834d4);
+        }
+
+        .achievements-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        /* Timeline Filter */
+        .timeline-filter {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 18px;
+            border: 2px solid var(--border-color, #eee);
+            background: var(--card-bg, #fff);
+            border-radius: 50px;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.25s;
+            color: var(--text-secondary, #666);
+            min-height: 38px;
+        }
+
+        .filter-btn.active,
+        .filter-btn:hover {
+            background: var(--main, #6c5ce7);
+            border-color: var(--main, #6c5ce7);
+            color: white;
+        }
+
+        /* ===== RESPONSIVE ===== */
+
+        /* Tablet */
+        @media (max-width: 768px) {
+            .profile-cover { height: 140px; }
+
+            .profile-header-card {
+                margin: -40px 5px 15px;
+                padding: 15px;
+                gap: 12px;
+            }
+
+            .profile-avatar {
+                width: 75px;
+                height: 75px;
+                font-size: 2rem;
+            }
+
+            .profile-title h1 { font-size: 1.2rem; }
+
+            .profile-stats-header {
+                width: 100%;
+                justify-content: space-around;
+                padding-top: 10px;
+                border-top: 1px solid var(--border-color, #eee);
+            }
+
+            .profile-tab-btn span { font-size: 0.82rem; }
+
+            .stats-grid-modern {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* Mobile */
+        @media (max-width: 480px) {
+            .profile-container { padding: 0 8px 30px; }
+
+            .profile-cover { height: 110px; border-radius: 0 0 20px 20px; }
+
+            .profile-header-card {
+                margin: -35px 5px 12px;
+                padding: 12px;
+                gap: 10px;
+                border-radius: 15px;
+            }
+
+            .profile-avatar {
+                width: 65px;
+                height: 65px;
+                font-size: 1.8rem;
+                border-width: 3px;
+            }
+
+            .profile-title h1 { font-size: 1rem; }
+            .profile-title p { font-size: 0.78rem; }
+
+            .stat-value { font-size: 1.1rem; }
+            .stat-label { font-size: 0.7rem; }
+
+            .profile-tabs-container { padding: 4px; gap: 3px; }
+
+            .profile-tab-btn {
+                padding: 8px 6px;
+                font-size: 0.78rem;
+                gap: 4px;
+                min-height: 40px;
+            }
+
+            .profile-tab-btn span { font-size: 0.75rem; }
+
+            .stats-grid-modern {
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+
+            .stats-card {
+                padding: 12px;
+                gap: 10px;
+            }
+
+            .stats-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 1.1rem;
+                border-radius: 10px;
+            }
+
+            .stats-number { font-size: 1.2rem; }
+
+            .security-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .settings-grid {
+                grid-template-columns: 1fr !important;
+            }
+
+            .settings-actions {
+                flex-direction: column;
+            }
+
+            .settings-actions .btn-save,
+            .settings-actions .btn-cancel {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .modal-actions {
+                flex-direction: column;
+            }
+
+            .modal-actions .btn-save,
+            .modal-actions .btn-cancel {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        /* Landscape Mobile */
+        @media (max-height: 500px) and (orientation: landscape) {
+            .profile-cover { height: 80px; }
+            .profile-header-card { margin-top: -25px; }
+            .profile-avatar { width: 60px; height: 60px; }
+        }
+    </style>
 </head>
 <body>
     <!-- Progress Indicator -->

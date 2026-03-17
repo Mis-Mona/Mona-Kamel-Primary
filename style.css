@@ -436,6 +436,15 @@ header {
 
 @media (max-width: 768px) {
     .logo-text { font-size: 1rem; }
+    header { padding: 8px 3%; gap: 6px; }
+}
+
+@media (max-width: 480px) {
+    .logo-text { font-size: 0.9rem; }
+    .auth-btn, .dashboard-btn, .logout-btn {
+        padding: 7px 12px;
+        font-size: 0.78rem;
+    }
     header { padding: 8px 3%; }
 }
 
@@ -452,15 +461,19 @@ header {
 
 /* ================ BUTTONS ================ */
 .auth-btn, .dashboard-btn, .logout-btn {
-    padding: 8px 20px;
+    padding: 8px 16px;
     border-radius: 10px;
     font-weight: bold;
     cursor: pointer;
     font-family: 'Cairo';
     transition: var(--transition);
     border: none;
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     letter-spacing: 0.3px;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
 }
 
 .auth-btn {
@@ -481,7 +494,7 @@ header {
 .logout-btn {
     background: var(--danger);
     color: white;
-    margin-right: 10px;
+    margin-right: 5px;
 }
 
 .logout-btn:hover {
@@ -493,102 +506,248 @@ header {
 .dashboard-btn {
     background: var(--main);
     color: white;
-    margin-right: 10px;
+    margin-right: 5px;
 }
 
 /* ================ HAMBURGER MENU ================ */
 .hamburger-menu {
-    font-size: 1.8rem;
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     color: var(--main);
     cursor: pointer;
-    padding: 5px 10px;
     border-radius: 10px;
-    transition: 0.3s;
-    display: inline-block;
+    transition: background 0.2s, transform 0.25s;
+    flex-shrink: 0;
+    border: 1.5px solid var(--border-color);
+    background: var(--card-bg);
     position: relative;
 }
 
 .hamburger-menu:hover {
     background: var(--hover-bg);
+    border-color: var(--main);
+}
+
+.hamburger-menu.open {
+    background: var(--hover-bg);
+    border-color: var(--main);
     transform: rotate(90deg);
 }
 
+/* ================ DROPDOWN MENU ================ */
 .dropdown-menu {
     position: fixed;
-    top: 70px;
-    right: 15px;
+    top: 62px;
+    right: 12px;
     left: auto;
     background: var(--card-bg);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-    border-radius: 15px;
-    width: 220px;
-    padding: 10px 0;
+    box-shadow:
+        0 20px 60px rgba(0,0,0,0.15),
+        0 4px 16px rgba(108,92,231,0.1);
+    border-radius: 18px;
+    width: 240px;
+    padding: 8px;
     z-index: 99999;
     border: 1px solid var(--border-color);
     display: none;
-    animation: slideDown 0.3s ease;
+    animation: dropdownSlide 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform-origin: top right;
 }
 
-/* Overlay خفي لإغلاق الـ dropdown لما المستخدم يضغط برا */
+/* Overlay لإغلاق الـ dropdown */
 .dropdown-overlay {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    inset: 0;
     z-index: 99998;
     display: none;
-    background: transparent;
+    background: rgba(0,0,0,0.08);
+    backdrop-filter: blur(2px);
 }
 
-@keyframes slideDown {
+@keyframes dropdownSlide {
     from {
         opacity: 0;
-        transform: translateY(-10px);
+        transform: scale(0.88) translateY(-10px);
     }
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: scale(1) translateY(0);
     }
 }
 
+/* هيدر القائمة (اسم المستخدم) */
+.dropdown-user-header {
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--main), var(--dark));
+    color: white;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dropdown-user-header .user-avatar-sm {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    font-weight: bold;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.dropdown-user-header .user-name-sm {
+    font-size: 0.85rem;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dropdown-user-header .user-id-sm {
+    font-size: 0.72rem;
+    opacity: 0.8;
+    margin-top: 1px;
+}
+
+/* عناصر القائمة */
 .dropdown-menu a,
-.dropdown-menu div {
-    display: block;
-    padding: 12px 20px;
+.dropdown-menu div:not(.dropdown-user-header):not(.dropdown-user-header *) {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    border-radius: 10px;
     text-decoration: none;
     color: var(--text-primary);
-    font-weight: bold;
-    transition: 0.2s;
+    font-weight: 700;
+    font-size: 0.88rem;
+    transition: background 0.15s, color 0.15s, transform 0.15s;
     cursor: pointer;
-    text-align: right;
+    direction: rtl;
+}
+
+.dropdown-menu a i,
+.dropdown-menu div:not(.dropdown-user-header) i {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 7px;
+    background: var(--hover-bg);
+    color: var(--main);
+    font-size: 0.85rem;
+    flex-shrink: 0;
+    transition: background 0.15s;
 }
 
 .dropdown-menu a:hover,
-.dropdown-menu div:hover {
+.dropdown-menu div:not(.dropdown-user-header):hover {
     background: var(--hover-bg);
     color: var(--main);
-    padding-right: 25px;
+    transform: translateX(-3px);
+}
+
+.dropdown-menu a:hover i,
+.dropdown-menu div:not(.dropdown-user-header):hover i {
+    background: var(--main);
+    color: white;
+}
+
+/* عنصر تسجيل الخروج */
+.dropdown-menu #logoutMenuItem {
+    color: var(--danger);
+    margin-top: 2px;
+}
+
+.dropdown-menu #logoutMenuItem i {
+    background: rgba(255,118,117,0.12);
+    color: var(--danger);
+}
+
+.dropdown-menu #logoutMenuItem:hover {
+    background: rgba(255,118,117,0.1);
+    color: var(--danger);
+    transform: translateX(-3px);
+}
+
+.dropdown-menu #logoutMenuItem:hover i {
+    background: var(--danger);
+    color: white;
 }
 
 .dropdown-menu hr {
-    margin: 8px 0;
-    border: 0.5px solid var(--border-color);
+    margin: 6px 0;
+    border: none;
+    border-top: 1px solid var(--border-color);
+}
+
+/* Dark mode */
+body.dark-mode .dropdown-menu {
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 4px 16px rgba(162,155,254,0.1);
+}
+
+body.dark-mode .hamburger-menu {
+    border-color: var(--border-color);
+    background: var(--card-bg);
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+    .dropdown-menu {
+        right: 8px;
+        width: calc(100vw - 16px);
+        max-width: 290px;
+        top: 58px;
+        border-radius: 16px;
+    }
 }
 
 /* ================ STUDENT ID ================ */
 .student-id-badge {
     background: linear-gradient(135deg, #f0eeff, #e5e2ff);
-    padding: 10px 20px;
+    padding: 7px 14px;
     border-radius: 50px;
     color: var(--main);
     font-weight: bold;
-    border: 2px solid var(--main);
+    border: 1.5px solid var(--main);
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    box-shadow: 0 5px 15px rgba(108,92,231,0.2);
-    font-size: 0.95rem;
+    gap: 6px;
+    box-shadow: 0 3px 10px rgba(108,92,231,0.15);
+    font-size: 0.85rem;
+    white-space: nowrap;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+@media (max-width: 600px) {
+    .student-id-badge {
+        padding: 5px 10px;
+        font-size: 0.78rem;
+        max-width: 110px;
+        gap: 4px;
+    }
+    .student-id-badge i {
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 400px) {
+    /* إخفاء الـ badge على الشاشات الصغيرة جداً وإظهاره في القائمة بدلاً منه */
+    .student-id-badge {
+        display: none;
+    }
 }
 
 .student-id-badge i {
@@ -3567,14 +3726,13 @@ body.dark-mode .whatsapp-group-card {
         white-space: nowrap;
     }
     
-    /* الـ dropdown دايماً fixed - مش بيتأثر بالـ scroll */
+    /* الـ dropdown responsive */
     .dropdown-menu, #menuDropdown {
-        position: fixed !important;
-        top: 65px !important;
-        right: 15px !important;
+        top: 58px !important;
+        right: 8px !important;
         left: auto !important;
-        width: 200px !important;
-        max-width: calc(100vw - 30px) !important;
+        width: calc(100vw - 16px) !important;
+        max-width: 280px !important;
         z-index: 99999 !important;
     }
     
@@ -3603,3 +3761,148 @@ body.dark-mode .whatsapp-group-card {
         flex-wrap: nowrap !important;
     }
 }
+
+/* ================ GLOBAL BUTTON SYSTEM - RESPONSIVE ================ */
+
+/* كل الأزرار العامة: حجم موحد ومضغوط */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-family: 'Cairo', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: var(--transition);
+    border: none;
+    min-height: 44px;
+    white-space: nowrap;
+}
+
+.btn-main {
+    background: linear-gradient(135deg, var(--main), var(--dark));
+    color: white;
+    box-shadow: 0 4px 12px rgba(108,92,231,0.3);
+}
+
+.btn-main:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(108,92,231,0.4);
+}
+
+/* أزرار الهيدر - صغيرة ومتناسقة */
+.header-controls .btn,
+.header-controls .auth-btn,
+.header-controls .dashboard-btn,
+.header-controls .logout-btn,
+.header-controls .ramadan-header-btn,
+.header-controls .secondary-header-btn {
+    padding: 7px 14px;
+    font-size: 0.82rem;
+    border-radius: 8px;
+    min-height: 38px;
+}
+
+/* ضمان عدم تجاوز الهيدر */
+header {
+    min-height: 56px;
+}
+
+.header-controls {
+    gap: 6px;
+}
+
+/* ================ LANDSCAPE MOBILE FIX ================ */
+@media (max-height: 500px) and (orientation: landscape) {
+    .hero {
+        padding: 30px 5%;
+    }
+    .hero-image img {
+        width: 120px;
+        height: 120px;
+    }
+    header {
+        padding: 6px 3%;
+        min-height: 48px;
+    }
+    .header-controls .btn,
+    .header-controls .auth-btn,
+    .header-controls .dashboard-btn,
+    .header-controls .logout-btn {
+        padding: 5px 10px;
+        font-size: 0.78rem;
+        min-height: 34px;
+    }
+}
+
+/* ================ SMALL SCREENS ================ */
+@media (max-width: 400px) {
+    .header-controls .auth-btn,
+    .header-controls .dashboard-btn,
+    .header-controls .logout-btn {
+        padding: 6px 10px;
+        font-size: 0.75rem;
+    }
+    
+    .ramadan-header-btn {
+        padding: 5px 10px !important;
+        font-size: 0.75rem !important;
+    }
+    
+    .hero-content h1 {
+        font-size: 1.4rem !important;
+    }
+    
+    .student-id-badge {
+        font-size: 0.8rem;
+        padding: 7px 14px;
+    }
+
+    .course-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr 1fr !important;
+    }
+}
+
+/* ================ TABLET ================ */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .header-controls {
+        gap: 8px;
+    }
+    .auth-btn, .dashboard-btn, .logout-btn {
+        padding: 8px 14px;
+        font-size: 0.85rem;
+    }
+    .hero-content h1 {
+        font-size: 2rem;
+    }
+    .course-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* ================ WIDE SCREENS ================ */
+@media (min-width: 1400px) {
+    header { padding: 12px 6%; }
+    .hero, .features, .courses, .about-section, .reviews, .leaderboard-section {
+        padding-left: 8%;
+        padding-right: 8%;
+    }
+    #studentDashboard, #contentArea {
+        padding-left: 8%;
+        padding-right: 8%;
+    }
+}
+
+/* ================ VERY WIDE (4K) ================ */
+@media (min-width: 1800px) {
+    header { max-width: 1800px; margin: 0 auto; }
+    body > * { max-width: 1800px; margin-left: auto; margin-right: auto; }
+}
+
